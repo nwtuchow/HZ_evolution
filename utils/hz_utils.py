@@ -165,14 +165,9 @@ class HZ_evolution:
     #calculate fixed duration CHZ, also called fixed age CHZ
     #fixed age has units of yr
     #should add condition so stays within HZ temp boundaries
-    def get_fixed_age_CHZ(self,fixed_age=2.0e9):
-        if hasattr(self,"tau") and hasattr(self,"d_range"):
-            pass
-        else:
-            print("Tau has not been defined yet")
-            return 0
-    
-        nd=len(self.d_range)
+    def get_fixed_age_CHZ(self,fixed_age=2.0e9,nd=1000):
+        
+        d_range,tau= self.obj_calc_tau_arr(nd=nd,mode="default")
         
         if self.age[-1] < fixed_age or len(self.age)<2:
             self.fCHZ_i = -1
@@ -183,25 +178,20 @@ class HZ_evolution:
         down_arr=np.array([]) # boundaries for when goes from CHZ to non CHZ
         #need to do this because in strange cases can have a split CHZ
         
-        #if self.current_eep < 203:
-        #    self.fCHZ_i=np.nan
-        #    self.fCHZ_o=np.nan
-        #    return
-        
         #needs to be in bounds of temp range of HZ on main sequence
         if self.Teff.max()> self.Tmax or self.Teff.min()<self.Tmin:
             self.fCHZ_i= np.nan
             self.fCHZ_o= np.nan
             return #self.fCHZ_i, self.fCHZ_o 
     
-        cond_arr= (self.tau >= fixed_age)
+        cond_arr= (tau >= fixed_age)
         for i in range(1,nd):
             cond_prev=cond_arr[i-1]
             if (cond_arr[i] ==True) and (cond_prev == False):
-                up_arr=np.append(up_arr,self.d_range[i]) 
+                up_arr=np.append(up_arr,d_range[i]) 
             
             if (cond_arr[i]==False) and (cond_prev == True):
-                down_arr=np.append(down_arr,self.d_range[i-1])
+                down_arr=np.append(down_arr,d_range[i-1])
     
         if len(up_arr) != len(down_arr):
             print("disagreement between lenths of up_arr and down_arr")
@@ -234,35 +224,12 @@ class HZ_evolution:
     #note that tau is in units of yr, same with t_0
     #mode: specify how tau is calculated Default is smoother but may have problems with tracks that move in and out
     #coarse is faster and works better in problematic areas of evolutionary tracks
-    def obj_calc_tau_arr(self,t_0=0.0,only_CHZ=False,nd=500,mode="default",output_arr=True):
+    def obj_calc_tau_arr(self,nd=500,**kwargs):
         
-        #removed this because no longer have eep, probably need to add something here to avoid crashes
-        #if self.current_eep < 203 and mode=='default':
-        #    self.tau=np.ones(nd)*np.nan
-        #    return self.tau
-        #elif self.current_eep<1:
-        #    self.tau=np.ones(nd)*np.nan
-        #    return self.tau
+        d_range= np.linspace(0.95*self.current_i,1.05*self.current_o,nd)
+        tau=self.obj_calc_tau(d_range,**kwargs)
         
-        self.d_range= np.linspace(0.95*self.current_i,1.05*self.current_o,nd)
-        
-        #removed trimming at zams, will this still work?
-        if mode=="default":
-            self.tau=calc_tau(self.d_range, self.age, self.r_inner,
-                              self.r_outer,t_0=t_0,only_CHZ=only_CHZ)
-        elif mode=="coarse":
-            if self.age[-1] <= t_0: #set habitable duration to zero if before onset of habitability
-                self.tau= np.zeros(nd)
-            else:
-                start_ind= np.where(self.age>t_0)[0][0]
-                self.tau=calc_tau_coarse(self.d_range, self.age[start_ind:], self.r_inner[start_ind:],self.r_outer[start_ind:],only_CHZ=only_CHZ)
-        else:
-            print("Invalid mode")
-            
-        if output_arr:
-            return self.tau
-        else:
-            return
+        return d_range, tau
     
     #same as obj_calc_tau_arr but for single distance
     def obj_calc_tau(self,dist,t_0=0.0,only_CHZ=False,mode="default"):
@@ -509,27 +476,34 @@ class HZ_evolution:
                 hz_ax.axhline(y=self.sCHZ_i,ls=':',color='green')
                 hz_ax.axhline(y=self.sCHZ_o,ls=':',color='green')
         return hz_fig, hz_ax
-        
-    def plot_tau(self):
+    
+    #relic from back when drange and tau_arr were saved as part of object    
+    def plot_tau(self, d_range,tau):
         if len(self.age)<=1:
-            return 0
-        if hasattr(self,"tau") and hasattr(self,"d_range"):
-            pass
-        else:
-            print("Tau has not been defined yet")
             return 0
         
         tau_fig, tau_ax = plt.subplots()
-        tau_ax.plot(self.d_range,self.tau)
+        tau_ax.plot(d_range,tau)
         tau_ax.set_xlabel("distance (AU)")
         tau_ax.set_ylabel("Habitable Duration (yr)")
         return tau_fig, tau_ax
 
 
-#class HZ_planet:
-#    def __init__(self, a,hz_evol):
+class HZ_planet:
+    #a is semimajor axis in au
+    def __init__(self, a,hz_evol):
+        self.a= a
+        self.model=hz_evol
+        self.Seff= self.model.L/pow(self.a,2)
+    
+    def get_tau(self, **kwargs):
+        self.tau=self.model.obj_calc_tau(self.a,**kwargs)
         
+    def get_t_int(self, **kwargs):
+        self.t_int=self.model.obj_calc_t_interior(self.a,**kwargs)
         
+    def get_t_ext(self, **kwargs):
+        self.t_ext=self.model.obj_calc_t_exterior(self.a,**kwargs)
         
 
 #turn MIST evolutionary track into HZ evolution object

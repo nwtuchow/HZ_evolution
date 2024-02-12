@@ -51,10 +51,13 @@ print("Sustained CHZ: ", evol1.sCHZ_i, " to ", evol1.sCHZ_o)
 print("2Gyr fixed duration CHZ: ", evol1.fCHZ_i, " to ",evol1.fCHZ_o)
 #%%
 hz_fig, hz_ax=evol1.plot_HZ()
-tau_fig, tau_ax = evol1.plot_tau()
+
+d_range,tau_arr=evol1.obj_calc_tau_arr()
+tau_fig, tau_ax = evol1.plot_tau(d_range,tau_arr)
 
 fig,ax = plt.subplots()
-ax.plot(evol1.d_range,evol1.t_interior)
+d_range2,t_int_arr=evol1.obj_calc_t_interior_arr()
+ax.plot(d_range2,t_int_arr)
 ax.set_xlabel("dist")
 ax.set_ylabel('t_interior')
 
