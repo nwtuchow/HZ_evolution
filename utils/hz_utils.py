@@ -41,16 +41,36 @@ SOLAR_B_R18 = {"B_lna_CS": 2.1455964,
                "B_lna_2Gyr_CS":0.9100522,
                "B_lna_fixed_2Gyr_CS":0.9100522}
 
-
-#calculates a boundary of the habitable zone given the Luminosity and effective
-#temperature of the host stars, and coefficients for the hz boundary in question
 def hz_boundary(L,Teff,coeff):
+    '''
+    Calculates a boundary of the habitable zone given the Luminosity and effective
+    temperature of the host stars, and coefficients for the hz boundary in question
+    
+
+    Parameters
+    ----------
+    L : float
+        stellar Luminosity in Lsun
+    Teff : float
+        stellar effective temp
+    coeff : list of float
+        coefficient for polynomial fit for hz boundaries
+
+    Returns
+    -------
+    d : TYPE
+        distance of the hz boundary
+
+    '''
     T= Teff - 5780
     Seff= coeff[0] + coeff[1] * T + coeff[2] * T**2 + coeff[3] * T**3 + coeff[4] * T**4
     d= np.sqrt(L/Seff) #AU
     return d
 
 def hz_flux_boundary(Teff,coeff):
+    '''
+    Same as hz_boundary, but returns effective flux of boundary
+    '''
     T= Teff - 5780
     Seff= coeff[0] + coeff[1] * T + coeff[2] * T**2 + coeff[3] * T**3 + coeff[4] * T**4
     return Seff
@@ -59,27 +79,52 @@ def hz_flux_boundary(Teff,coeff):
 
 G_const= cons.G.to((u.AU**3)/u.Msun/(u.day**2)).value
 
-#keplers 3rd law
-#Period in days, Mtot in Msun
+
 def P_to_d(Period,Mtot):
+    '''calculates planet semimajor axis using keplers 3rd law
+    Period in days, Mtot in Msun
+    '''
     d= pow(G_const*Mtot*pow(Period,2)/(4*pow(np.pi,2)),(1/3))
     return d
-
-#Period in days, Mtot in Msun, L in Lsun    
+    
 def P_to_Seff(Period,Mtot,L):
+    ''' calculates Seff of planet given its orbital period
+    Period in days, Mtot in Msun, L in Lsun
+    '''
     d= P_to_d(Period,Mtot)
     Seff = L / (d**2)
     return Seff
     
 
 
-#object for HZ evolution
-#does age have right units, currently yrs
-#needs to be tested
-#if you want to use a custom formulation of the habitable zone provide functions
-#for the inner and outer boundaries custom_inner_HZ_func and custom_outer_HZ_func
-#which take inputs of L and Teff
+
+#age has been tested in units of yrs, but other units should work as long 
+#as all age related quantities use the same units
 class HZ_evolution:
+    """This class defines an object for HZ evolution. Given information about
+    a star's evolutionary track, this object can calculate derived properties,
+    such as the continuously habitable zone and duration spent in the HZ.
+    
+    Parameters:
+    -----------
+    age: array
+        array of stellar age in yrs
+    L: array
+        array of Luminosity in Lsun
+    Teff: array 
+        array of stellar effective temperature in Kelvin
+    HZ_form: str, optional
+        Formulation for the habitable zone. Currently choose between 
+        Kopparapu 2013 moist greenhouse and max greenhouse ("K13"), Kopparapu 
+        2013 recent Venus and Early Mars ("K13_optimistic"), Ramirez 2018 ("R18"),
+        or define your own HZ formulation selection the "custom" option
+    custom_inner_HZ_func: function, optional 
+        Custom function for inner HZ boundary in terms of distance,
+        taking arguments of L and Teff. Only used when HZ_form="custom"
+    custom_outer_HZ_func: function, optional
+        Custom function for outer HZ boundary, taking 
+        arguments of L and Teff. Only used when HZ_form="custom"
+    """
     def __init__(self,age,L,Teff,HZ_form="K13",custom_inner_HZ_func=None,
                  custom_outer_HZ_func=None):
         #need to do something if len<=1?
@@ -126,6 +171,17 @@ class HZ_evolution:
     #needs to be fixed for the case of high eep
     #appears to not work for some low Fe/H cases, might just be outside of temp range for HZ
     def get_sustained_CHZ(self,CHZ_start_age=1e7):
+        """
+        Calculate Tuchow 2020 definition of the sustained CHZ, the region when planets remain
+        within the boundaries of the HZ from a specified starting point until the current day
+
+        Parameters
+        ----------
+        CHZ_start_age : float, optional
+            Age at which sustained habitability is considered to start. Could be zero age main sequence,
+            time for the onset of habitability,or timescale for delivery of volatiles to planet
+            
+        """
         if self.age[-1]<CHZ_start_age:
             self.sCHZ_i= -1
             self.sCHZ_o= -1
@@ -162,10 +218,22 @@ class HZ_evolution:
             self.sCHZ_i= max(ri_max,initial_i)
         return
     
-    #calculate fixed duration CHZ, also called fixed age CHZ
-    #fixed age has units of yr
+    
     #should add condition so stays within HZ temp boundaries
     def get_fixed_age_CHZ(self,fixed_age=2.0e9,nd=1000):
+        """
+        Calculate fixed duration CHZ, also called fixed age CHZ. This is the more 
+        standard formulation of the CHZ where planets in the CHZ have spent more than
+        a fixed duration in the HZ
+
+        Parameters
+        ----------
+        fixed_age : float, optional
+            Duration of time spent in the habitable zone to be considered continuously habitable.
+            Units of yrs
+        nd : Int, optional
+            number of grid points used to find boundaries of the CHZ
+        """
         
         d_range,tau= self.obj_calc_tau_arr(nd=nd,mode="default")
         
@@ -194,7 +262,7 @@ class HZ_evolution:
                 down_arr=np.append(down_arr,d_range[i-1])
     
         if len(up_arr) != len(down_arr):
-            print("disagreement between lenths of up_arr and down_arr")
+            print("disagreement between lengths of up_arr and down_arr")
             return 0
     
         if len(up_arr)==1:
@@ -213,49 +281,135 @@ class HZ_evolution:
     #no longer uses EEP because general stellar evolution objects don't necessarily have
     #may cause crashes on premain sequence and postmain sequence
     def obj_calc_B(self,**kwargs):
+        """
+        calculates Tuchow 2020 biosignature yield metrics
+
+        Parameters
+        ----------
+        **kwargs : TYPE
+            keyword args for the calc_B function
+
+
+        Returns
+        -------
+        B : float
+            Biosignature yield metric
+
+        """
         L0 = self.L 
         Teff0 =self.Teff
         age0= self.age
         B= calc_B(L0, Teff0,age0,**kwargs)
         return B
     
-    #calc duration spent in HZ, note: sets regions no longer in HZ to zero
-    #nd: size of distance array
-    #note that tau is in units of yr, same with t_0
-    #mode: specify how tau is calculated Default is smoother but may have problems with tracks that move in and out
-    #coarse is faster and works better in problematic areas of evolutionary tracks
     def obj_calc_tau_arr(self,nd=500,**kwargs):
+        '''
+        Calculates duration spent in the HZ, tau, for an array of distances 
+        spread across the HZ. Note: sets regions no longer in HZ to zero
+        
+
+        Parameters
+        ----------
+        nd : int, optional
+            number of distance points in array
+        **kwargs : TYPE
+            obj_calc_tau kwargs
+
+        Returns
+        -------
+        d_range : numpy.array
+            range of distances surrounding the HZ
+        tau : numpy.array
+            habitable duration, time spent in the habitable zone. 
+            Units are the same as units for age
+
+        '''
         
         d_range= np.linspace(0.95*self.current_i,1.05*self.current_o,nd)
         tau=self.obj_calc_tau(d_range,**kwargs)
         
         return d_range, tau
     
-    #same as obj_calc_tau_arr but for single distance
-    def obj_calc_tau(self,dist,t_0=0.0,only_CHZ=False,mode="default"):
+    def obj_calc_tau(self,dist,only_CHZ=False,mode="default"):
+        '''
+        Calculates the duration spent in the habitable zone, tau, for a planet at a 
+        given distance. Duration is set to zero if planet is currently outside 
+        the HZ. Same as obj_calc_tau_arr but for a single distance
+
+        Parameters
+        ----------
+        dist : float
+            distance between planet and star in AU
+        only_CHZ : bool, optional
+            sets habitable duration to zero outside CHZ
+        mode : TYPE, optional
+            Specify how tau is calculated. "default" is smoother but may have 
+            problems with tracks that move in and out. "coarse" is faster and 
+            works better in problematic areas of evolutionary tracks
+
+        Returns
+        -------
+        obj_tau : TYPE
+            DESCRIPTION.
+
+        '''
         
         if mode=="default":
             obj_tau=calc_tau(dist, self.age, self.r_inner,
-                              self.r_outer,t_0=t_0,only_CHZ=only_CHZ)
+                              self.r_outer,only_CHZ=only_CHZ)
         elif mode=="coarse":
-            if self.age[-1] <= t_0: #set habitable duration to zero if before onset of habitability
-                obj_tau= 0.0
-            else:
-                start_ind= np.where(self.age>t_0)[0][0]
-                obj_tau=calc_tau_coarse(dist, self.age[start_ind:], self.r_inner[start_ind:],self.r_outer[start_ind:],only_CHZ=only_CHZ)
+            obj_tau=calc_tau_coarse(dist, self.age, self.r_inner,self.r_outer,only_CHZ=only_CHZ)
+            #if self.age[-1] <= t_0: #set habitable duration to zero if before start age
+            #    obj_tau= 0.0
+            #else:
+            #    start_ind= np.where(self.age>t_0)[0][0]
+            #    obj_tau=calc_tau_coarse(dist, self.age[start_ind:], self.r_inner[start_ind:],self.r_outer[start_ind:],only_CHZ=only_CHZ)
         else:
             print("Invalid mode")
             
         return obj_tau
     
-    #calculate time spent interior to the HZ for array of distances
     def obj_calc_t_interior_arr(self,nd=500,mode='default'):
+        '''calculate time spent interior to the HZ for array of distances
+        
+
+        Parameters
+        ----------
+        nd : int, optional
+            length of distance array
+        mode : str, optional
+            mode for calculation. Either 'default' or 'coarse'
+
+        Returns
+        -------
+        d_range : np.array
+            array of distances around the HZ
+        t_int : np.array
+            time spent interior to the HZ
+
+        '''
         d_range= np.linspace(0.95*self.current_i,1.05*self.current_o,nd)
         t_int= self.obj_calc_t_interior(d_range,mode=mode)
         return d_range, t_int
     
-    #calculate time interior to HZ for given distance
+
     def obj_calc_t_interior(self,dist,mode='default'):
+        '''Calculate time spent interior to the HZ for a given distance
+        
+
+        Parameters
+        ----------
+        dist : float
+            distance from planet to star (AU)
+        mode : str, optional
+            mode for calculation. Either 'default' or 'coarse'
+
+        Returns
+        -------
+        t_int : float
+            time spent interior to the HZ.
+
+        '''
         if mode=='default':
             t_int= calc_t_interior(dist, self.age, self.r_inner, self.r_outer)
         elif mode=='coarse':
@@ -266,6 +420,24 @@ class HZ_evolution:
         return t_int
     
     def obj_calc_t_exterior_arr(self,nd=500,mode='default'):
+        '''
+        Calculates time spent exterior to the HZ for an array of distances
+
+        Parameters
+        ----------
+        nd : int, optional
+            number of distance points around HZ
+        mode : str, optional
+            mode for calculation. Either 'default' or 'coarse'
+
+        Returns
+        -------
+        d_range : np.array
+            array of distances around the HZ
+        t_ext : np.array
+            array of time spent exterior to the HZ
+
+        '''
         d_range= np.linspace(0.95*self.current_i,1.05*self.current_o,nd)
         t_ext=self.obj_calc_t_exterior(d_range,mode=mode)
         return d_range, t_ext
@@ -273,8 +445,24 @@ class HZ_evolution:
     
     
     def obj_calc_t_exterior(self,dist,mode='default'):
+        '''
+        Calculates time spent exterior to the HZ for a specified distance
+
+        Parameters
+        ----------
+        mode : str, optional
+            mode for calculation. Either 'default' or 'coarse'
+
+        Returns
+        -------
+        t_ext : float
+            time spent exterior to the HZ
+
+        '''
         if mode=='default':
             t_ext= calc_t_exterior(dist, self.age, self.r_inner, self.r_outer)
+        elif mode=='coarse':
+            t_ext= calc_t_exterior_coarse(dist, self.age, self.r_inner, self.r_outer)
         else:
             print("Invalid Mode")
         
@@ -524,7 +712,8 @@ def HZ_evolution_MIST(track,eep,**kwargs):
 #r_inner and r_outer are arrays of HZ boundaries in time in AU
 #age array gives times for each entry in r_inner and r_outer
 #should be same units as t_0: time for onset of habitability
-def calc_tau(d, age, r_inner,r_outer,t_0=0.0,only_CHZ=False):
+#t_0 is obsolete
+def calc_tau(d, age, r_inner,r_outer, only_CHZ=False):
     
     if only_CHZ==False:
         ri_func=interpolate.interp1d(age,r_inner)
@@ -545,7 +734,7 @@ def calc_tau(d, age, r_inner,r_outer,t_0=0.0,only_CHZ=False):
         if d[k] < r_inner[-1] or d[k] > r_outer[-1]:
             t_life[k]=0.0 #case of if outside of IHZ
         elif d[k] >= ri_max and d[k]<=ro_min:
-            t_life[k] = age[-1]-age[0] # if in CHZ, subtract out age at ZAMS
+            t_life[k] = age[-1]-age[0] # if in CHZ, subtract out age at start time
         else:
             if only_CHZ==True:
                 t_life[k]=0.0
@@ -571,7 +760,7 @@ def calc_tau(d, age, r_inner,r_outer,t_0=0.0,only_CHZ=False):
             else:
                 t_life[k] =0.0
             
-    t_life=t_life -t_0
+    #t_life=t_life -t_0
     t_life[t_life<0.0]=0.0
             
     return t_life
@@ -722,7 +911,6 @@ def calc_t_interior_coarse(d, age, r_inner,r_outer):
     nd=len(d)
     t_interior=np.zeros_like(d)
     
-    #t_interior=current_age - self.tau
     
     for q in range(nd):
         if d[q] < r_inner[-1] or d[q] > r_outer[-1]: # set to zero outside HZ
@@ -775,6 +963,36 @@ def calc_t_exterior(d, age, r_inner,r_outer):
     
     return t_ext
 
+def calc_t_exterior_coarse(d, age, r_inner,r_outer):
+    #current_age= age[-1]
+    
+    #ri_min=min(r_inner)
+    ro_max=max(r_outer)
+    #ri_max= max(r_inner) 
+    ro_min= min(r_outer)
+    
+    #ro_func= interpolate.interp1d(age,r_outer)
+    
+    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
+        d= np.array([d])
+        
+    nd=len(d)
+    t_ext=np.zeros_like(d)
+    
+    
+    for q in range(nd):
+        if d[q] < r_inner[-1] or d[q] > r_outer[-1]: # set to zero outside HZ
+            t_ext[q]=0
+        elif d[q] > ro_max:
+            t_ext[q]=0
+        elif d[q]<=ro_max and d[q]>ro_min:
+            locs=np.argwhere(np.diff(np.sign(r_outer-d[q]))).flatten()
+            outer_age= age[locs[-1]] #guess for age when crosses outer boundary
+            t_ext[q]= outer_age
+        elif d[q]<=ro_min:
+            t_ext[q]=0
+    
+    return t_ext
 
 
 '''def planet_class(dist,age,r_inner, r_outer,start_age=1e7):

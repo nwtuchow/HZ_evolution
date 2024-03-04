@@ -38,6 +38,7 @@ new_ind= pd.MultiIndex.from_product([fehs,mass_arr,eeps,Seff_arr],names=('initia
 tau_df= pd.DataFrame(index=new_ind)
 tau_df['tau']=np.nan
 tau_df['t_int']=np.nan
+tau_df['t_ext']=np.nan
 
 t1=time.perf_counter()
 for feh in new_ind.levels[0]:
@@ -52,6 +53,9 @@ for feh in new_ind.levels[0]:
                 
                 temp_t_int=evol.obj_calc_t_interior(temp_d_arr,mode='default')
                 tau_df.loc[(feh,mass,eep),'t_int']=temp_t_int
+                
+                temp_t_ext=evol.obj_calc_t_exterior(temp_d_arr,mode='default')
+                tau_df.loc[(mass,eep),'t_ext']=temp_t_ext
                 #takes about 0.011s per iteration
                 
                 
@@ -63,6 +67,9 @@ for feh in new_ind.levels[0]:
                 
                 temp_t_int=evol.obj_calc_t_interior(temp_d_arr,mode='coarse')
                 tau_df.loc[(feh,mass,eep),'t_int']=temp_t_int
+                
+                temp_t_ext=evol.obj_calc_t_exterior(temp_d_arr,mode='coarse')
+                tau_df.loc[(mass,eep),'t_ext']=temp_t_ext
                 print("Problem at FeH = %.1f , Mass = %.2f, EEP = %d" %(feh,mass,eep))
 
 t2=time.perf_counter()
