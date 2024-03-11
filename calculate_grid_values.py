@@ -41,12 +41,13 @@ tau_df['t_ext']=np.nan
 feh=0
 t1=time.perf_counter()
 for mass in new_ind.levels[0]:
+    print("Mass=%.2f \n" % mass )
     track=df.xs((feh,mass),level=(0,1))
     for eep in new_ind.levels[1]:
         try:
             evol= hz.HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
             temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
-            temp_tau_arr=evol.obj_calc_tau(temp_d_arr,t_0=0.0,mode='default')
+            temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='default')
             tau_df.loc[(mass,eep),'tau']=temp_tau_arr
             
             temp_t_int=evol.obj_calc_t_interior(temp_d_arr,mode='default')
@@ -60,7 +61,7 @@ for mass in new_ind.levels[0]:
         except:
             evol= hz.HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
             temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
-            temp_tau_arr=evol.obj_calc_tau(temp_d_arr,t_0=0.0,mode='coarse')
+            temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='coarse')
             tau_df.loc[(mass,eep),'tau']=temp_tau_arr
             
             temp_t_int=evol.obj_calc_t_interior(temp_d_arr,mode='coarse')
@@ -72,4 +73,5 @@ for mass in new_ind.levels[0]:
 
 t2=time.perf_counter()
 print("Took ", (t2-t1), " seconds")
+#previously took 827 s
 tau_df.to_csv("outputs/tau_df_K13_optimistic.csv")

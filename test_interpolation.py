@@ -26,15 +26,12 @@ test_pts= np.array([[0.4,335,1.0],[1.0,335,1.0]]).T
 
 tau0=tau_interp(test_pts,['tau'])
 
-missingrow_df= tau_df.drop(index=0.4,level=0) #without the solar mass rows
+missingrow_df= tau_df.drop(index=1.0,level=0) #without the solar mass rows
 #missingrow_df=tau_df.drop(index=335,level=1) #without a given eep
 
 missingrow_df.index=missingrow_df.index.remove_unused_levels()
 missing_interp=DFInterpolator(missingrow_df)
 
-#why is missing row giving nans
-#because 1.0 is still in index
-#how can I reindex to not have 1.0 be a value
 #%%
 def test_tau(mass,age,Seff):
     feh=0
@@ -47,7 +44,7 @@ def test_tau(mass,age,Seff):
 #S_arr= np.linspace(0.2,2,50)
 S_arr=np.linspace(0.1, 2.1,1000)
 
-test_mass=0.4
+test_mass=1.0
 test_eep=335
 test_feh=0
 
@@ -55,16 +52,16 @@ input_arr= [test_mass*np.ones_like(S_arr),test_eep*np.ones_like(S_arr),S_arr]
 
 
 
-output_arr= tau_interp(input_arr,['tau','t_int'])
+output_arr= tau_interp(input_arr,['tau','t_int','t_ext'])
 mist_output=track_grid.interp([test_feh,test_mass,test_eep],['age','Teff','logL'])
 age=mist_output[0]
 Teff=mist_output[1]
 Lum= 10**mist_output[2]
 
-output_arr2=missing_interp(input_arr,['tau','t_int'])
+output_arr2=missing_interp(input_arr,['tau','t_int','t_ext'])
 
-S_inner=hz.hz_flux_boundary(Lum, Teff, hz.c_recent_venus)
-S_outer= hz.hz_flux_boundary(Lum, Teff, hz.c_early_mars)
+S_inner=hz.hz_flux_boundary(Teff, hz.c_recent_venus)
+S_outer= hz.hz_flux_boundary(Teff, hz.c_early_mars)
 
 d_arr= np.sqrt(Lum/S_arr)
 '''
@@ -93,3 +90,12 @@ ax2.set_ylabel("t_int")
 ax2.axvline(x=S_inner,ls='--',color='black')
 ax2.axvline(x=S_outer,ls='--',color='black')
 ax2.legend()
+
+fig3, ax3 = plt.subplots()
+ax3.plot(S_arr,output_arr[:,2])
+ax3.plot(S_arr,output_arr2[:,2],label='omitting row')
+ax3.set_xlabel("S_eff")
+ax3.set_ylabel("t_ext")
+ax3.axvline(x=S_inner,ls='--',color='black')
+ax3.axvline(x=S_outer,ls='--',color='black')
+ax3.legend()
