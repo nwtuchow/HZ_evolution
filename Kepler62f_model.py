@@ -40,7 +40,7 @@ star_dlogL= 0.0077
 star_mass=0.764
 star_dmass=0.011
 target_dict={'Teff':(star_Teff,star_dTeff),
-             'logg':(star_logg,star_dlogg*20),
+             'logg':(star_logg,star_dlogg*4),
              'feh':(star_feh,star_dfeh*2),
              'logL':(star_logL,star_dlogL),
              'mass':(star_mass,star_dmass*4)}
@@ -55,7 +55,7 @@ mist_track = MIST_EvolutionTrack()
 
 #%%
 test_par= [0.44,250,0.0]
-prop_names=['Teff', 'logg', 'feh', 'logL']
+prop_names=['Teff', 'logg', 'feh', 'logL','mass']
 
 
 global posterior_args
@@ -74,7 +74,6 @@ nsamples=20000 #10000
 p0=sample_prior(nwalkers, ndim, prior_arr,special_ind=[])
 
 #%% serial version
-#all posteriors are being evaluated as infinite for some reason
 sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_post_global)
 state=sampler.run_mcmc(p0, nsamples, progress=True)
 samples=sampler.get_chain()
@@ -114,17 +113,19 @@ import corner
 corner_fig = corner.corner(flat_samples,labels=labels,quantiles=[0.16, 0.5, 0.84],show_titles=True)
 
 #%%
-np.savetxt('outputs/example_sys_mcmc_chain.txt', flat_samples)
+np.savetxt('outputs/K62f_sys_mcmc_chain.txt', flat_samples)
+
+
 
 #%%
-flat_samples=np.loadtxt('outputs/example_sys_mcmc_chain.txt')
+flat_samples=np.loadtxt('outputs/K62f_sys_mcmc_chain.txt')
 
 #%% construct tau interpolator
 mass_min=flat_samples[:,0].min()
 mass_max=flat_samples[:,0].max()
 
-eep_min=200
-eep_max=350
+eep_min=flat_samples[:,1].min()
+eep_max=flat_samples[:,1].max()
 
 feh_min=flat_samples[:,2].min()
 feh_max=flat_samples[:,2].max()
@@ -143,12 +144,13 @@ Seff_arr=np.ones(n_points)*np.nan
 age_arr=np.ones(n_points)*np.nan
 tau_arr=np.ones(n_points)*np.nan
 t_int_arr=np.ones(n_points)*np.nan
+t_ext_arr=np.ones(n_points)*np.nan
 
 #K2-18 b properties
-Period= 32.939623 #from sarkis 2018, uncertainty negligible compared to other properties
+Period= 267.29 
 
 for i in range(n_points):
-    if i%100==0:
+    if i%1000==0:
         print(i)
     pars=flat_samples[i,:]
     temp_output= model_output(pars,prop_names=mist_cols,mist_track=mist_track)
@@ -162,17 +164,19 @@ for i in range(n_points):
     age_arr[i]=temp_output['age']
     tau_arr[i]= temp_tau_arr[0]
     t_int_arr[i]= temp_tau_arr[1]
+    t_ext_arr[i]= temp_tau_arr[2]
+    
     
 #%%
 age_fig, age_ax= plt.subplots()
-age_ax.hist(10**age_arr, bins=40,range=[0,6e10])
+age_ax.hist(10**age_arr, bins=40)
 age_ax.set_xlabel("age")
 
 age_quant= np.quantile(10**age_arr,[0.16, 0.5, 0.84] )
 
 #%%
 tau_fig, tau_ax= plt.subplots()
-tau_ax.hist(tau_arr, bins = 40,range=[0,6e10])
+tau_ax.hist(tau_arr, bins = 40)
 tau_ax.set_xlabel('tau')
 tau_quant=np.nanquantile(tau_arr,[0.16, 0.5, 0.84] )
 
@@ -181,3 +185,9 @@ t_int_fig, t_int_ax =plt.subplots()
 t_int_ax.hist(t_int_arr, bins=40)
 t_int_ax.set_xlabel('t_interior')
 t_int_quant=np.nanquantile(t_int_arr,[0.16, 0.5, 0.84])
+
+#%%
+t_ext_fig, t_ext_ax =plt.subplots()
+t_ext_ax.hist(t_ext_arr, bins=40)
+t_ext_ax.set_xlabel('t_exterior')
+t_ext_quant=np.nanquantile(t_ext_arr,[0.16, 0.5, 0.84])

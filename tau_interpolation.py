@@ -19,7 +19,7 @@ from isochrones.interp import DFInterpolator
 def construct_interpolator_4D(feh_min=-2.0,feh_max=0.5,mass_min= 0.1,mass_max= 2.0,
                            eep_min=6,eep_max=605,Seff_min=0.1,Seff_max=2.1):
     index_cols=['initial_Fe_H','initial_mass','EEP','S_eff']
-    all_cols=['initial_Fe_H', 'initial_mass', 'EEP', 'S_eff', 'tau', 't_int']
+    all_cols=['initial_Fe_H', 'initial_mass', 'EEP', 'S_eff', 'tau', 't_int','t_ext']
     tau_chunks=pd.read_csv("outputs/tau_df_K13_optimistic_4D.csv", chunksize=10**4)
     tau_df= pd.DataFrame(columns=all_cols)
     
@@ -42,7 +42,7 @@ def construct_interpolator_4D(feh_min=-2.0,feh_max=0.5,mass_min= 0.1,mass_max= 2
 def construct_interpolator_3D(mass_min= 0.1,mass_max= 2.0, eep_min=6,eep_max=605,
                               Seff_min=0.1,Seff_max=2.1):
     index_cols=['initial_mass','EEP','S_eff']
-    all_cols=['initial_mass', 'EEP', 'S_eff', 'tau', 't_int']
+    all_cols=['initial_mass', 'EEP', 'S_eff', 'tau', 't_int','t_ext']
     tau_chunks=pd.read_csv("outputs/tau_df_K13_optimistic.csv", chunksize=10**4)
     tau_df= pd.DataFrame(columns=all_cols)
     for chunk in tau_chunks:
