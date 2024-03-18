@@ -47,6 +47,8 @@ for feh in new_ind.levels[0]:
         print("Mass=%.2f \n" % mass )
         track=df.xs((feh,mass),level=(0,1))
         for eep in new_ind.levels[2]:
+            if (feh,mass,eep) not in df.index:
+                continue
             try:
                 evol= hz.HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
                 temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
