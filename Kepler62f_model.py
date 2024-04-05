@@ -20,13 +20,15 @@ from utils.stat_model import log_posterior, sample_prior,model_output
 from isochrones.mist import MIST_EvolutionTrack
 from isochrones.interp import DFInterpolator
 import scipy.stats as st
-from multiprocessing import Pool, cpu_count
+#from multiprocessing import Pool, cpu_count
 import utils.hz_utils as hz
 from tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
 import matplotlib.pyplot as plt
 import isochrones.priors as priors
-
+import multiprocessing as mp
+mp.set_start_method('fork')
 #%%
+
 
 #Kepler 62 f properties
 star_Teff=5062 #borucki+ 2018
@@ -66,6 +68,7 @@ def ln_post_global(pars):
                            mist_track, prior_arr,[])
     return ln_post
 
+
 #%% set dims
 ndim=3
 nwalkers=32 #32
@@ -74,21 +77,22 @@ nsamples=20000 #10000
 p0=sample_prior(nwalkers, ndim, prior_arr,special_ind=[])
 
 #%% serial version
-sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_post_global)
-state=sampler.run_mcmc(p0, nsamples, progress=True)
+sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_post_global) #for some reason multiprocessing requires this
+state=sampler.run_mcmc(p0, 5, progress=False)
 samples=sampler.get_chain()
+sampler.reset()
 
-#%%multiprocessing version (not working for some reason)
-'''if __name__ == '__main__':
-    with Pool() as mcmcpool:
+#%% multiprocessing version (not working for some reason)
+if __name__ == '__main__':
+    with mp.Pool() as mcmcpool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_post_global, 
                                         pool=mcmcpool)
         sampler.run_mcmc(p0, nsamples, progress=True)
 
-samples=sampler.get_chain()
-#sampler.reset()
+    samples=sampler.get_chain()
+    #sampler.reset()
 print("done")
-'''
+
 #%%
 labels = ["mass", "eep", "feh"]
 
@@ -105,8 +109,6 @@ for i in range(ndim):
 axes[-1].set_xlabel("step number")
 
 #tau=sampler.get_autocorr_time()
-
-#%%
 flat_samples = sampler.get_chain(discard=600,thin=10, flat=True)
 #tau=sampler.get_autocorr_time()
 import corner
@@ -123,12 +125,15 @@ flat_samples=np.loadtxt('outputs/K62f_sys_mcmc_chain.txt')
 #%% construct tau interpolator
 mass_min=flat_samples[:,0].min()
 mass_max=flat_samples[:,0].max()
+mass_quants=np.quantile(flat_samples[:,0],[0.16, 0.5, 0.84] )
 
 eep_min=flat_samples[:,1].min()
 eep_max=flat_samples[:,1].max()
+eep_quants= np.quantile(flat_samples[:,1], [0.16, 0.5, 0.84])
 
 feh_min=flat_samples[:,2].min()
 feh_max=flat_samples[:,2].max()
+feh_quants= np.quantile(flat_samples[:,2], [0.16, 0.5, 0.84])
 
 Seff_min=0.1
 Seff_max=2.1
@@ -150,8 +155,8 @@ t_ext_arr=np.ones(n_points)*np.nan
 Period= 267.29 
 
 for i in range(n_points):
-    if i%1000==0:
-        print(i)
+    #if i%1000==0:
+    #    print(i)
     pars=flat_samples[i,:]
     temp_output= model_output(pars,prop_names=mist_cols,mist_track=mist_track)
     L=10**temp_output['logL']
@@ -169,15 +174,15 @@ for i in range(n_points):
     
 #%%
 age_fig, age_ax= plt.subplots()
-age_ax.hist(10**age_arr, bins=40)
-age_ax.set_xlabel("age")
+age_ax.hist(age_arr, bins=40)
+age_ax.set_xlabel("log10(age)")
 
 age_quant= np.quantile(10**age_arr,[0.16, 0.5, 0.84] )
 
 #%%
 tau_fig, tau_ax= plt.subplots()
-tau_ax.hist(tau_arr, bins = 40)
-tau_ax.set_xlabel('tau')
+tau_ax.hist(np.log10(tau_arr), bins = 40)
+tau_ax.set_xlabel('log10(tau)')
 tau_quant=np.nanquantile(tau_arr,[0.16, 0.5, 0.84] )
 
 #%%
@@ -191,3 +196,24 @@ t_ext_fig, t_ext_ax =plt.subplots()
 t_ext_ax.hist(t_ext_arr, bins=40)
 t_ext_ax.set_xlabel('t_exterior')
 t_ext_quant=np.nanquantile(t_ext_arr,[0.16, 0.5, 0.84])
+
+
+#%%
+best_pars= [mass_quants[1],eep_quants[1],feh_quants[1]]
+track_cols=['age','logL','Teff']
+n_eep=400
+eep_arr=np.linspace(1,best_pars[1],n_eep)
+
+pts= np.empty((3,n_eep))
+
+pts[0,:]=best_pars[0]*np.ones(n_eep)
+pts[1,:]=eep_arr
+pts[2,:]=best_pars[2]*np.ones(n_eep)
+
+#%% make loop to get Seff
+
+#could plug into Planet object
+
+#temp_output= model_output(pars,prop_names=mist_cols,mist_track=mist_track)
+#L=10**temp_output['logL']
+#eff= hz.P_to_Seff(Period,temp_output['mass'],L)

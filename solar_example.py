@@ -38,6 +38,10 @@ evol1.get_fixed_age_CHZ(fixed_age=2e9)
 evol1.get_sustained_CHZ(CHZ_start_age=1e7)
 
 
+planet1= hz.HZ_planet(evol1.age, evol1.L, evol1.Teff,
+                      Dist=1.0,
+                      HZ_form="K13_optimistic")
+
 mode_str='default'
 nd=500
 S_arr=np.linspace(0.1, 2.0,nd)

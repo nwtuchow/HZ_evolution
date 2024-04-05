@@ -24,8 +24,7 @@ c_leconte= [1.105, 1.1921e-4, 9.5932e-9, -2.6189e-12, 1.3710e-16]
 c_CO2_max= [0.3587,5.8087e-5,1.5393e-9,-8.3547e-13,1.0319e-16]
 
 
-
-#solar values for biosignature yield metrics
+#solar values for Tuchow 2020 biosignature yield metrics
 #from fiducial rotating mist model with approx solar values
 #using Kopparapu HZ
 SOLAR_B_K13 = {"B_lna_CS": 1.99934863,
@@ -472,6 +471,11 @@ class HZ_evolution:
     
     #calculate fraction of HZ occupied by CHZ
     def CHZ_dist_fraction(self,form="sustained"):
+        '''calculate fraction of HZ occupied by CHZ
+        form: formulation of the HZ, "sustained" for the Tuchow and Wright 2023 formulation of the sustained CHZ,
+            'fixed age' for the fixed age CHZ, planets that spend longer that a given duration in the HZ
+        '''
+        
         if len(self.age)<=1:
             self.f_d=0
             return self.f_d
@@ -524,6 +528,10 @@ class HZ_evolution:
     
     #calculate fraction of HZ planets in CHZ assuming power law distribution of planets
     def CHZ_planet_fraction(self, beta=-1, form="sustained"):
+        '''calculate fraction of HZ planets in CHZ assuming power law distribution of planets
+        beta: powerlaw exponent
+        form: form: formulation of the HZ, "sustained" for the Tuchow and Wright 2023 formulation of the sustained CHZ,
+            'fixed age' for the fixed age CHZ, planets that spend longer that a given duration in the HZ'''
         if len(self.age)<=1:
             self.f_p=0
             return self.f_p
@@ -582,71 +590,25 @@ class HZ_evolution:
         return self.f_p
     
     
-    #fraction of planets spending >t_lim years interior to the HZ
-    #calculated for whole t_interior array
-    #needs to be redone to only consider regions currently in the HZ
-    def interior_fraction(self,t_lim=1e8):#,gamma= (lambda x: 1/x)):
-        is_interior=self.t_interior >= t_lim
-        self.f_int=np.nan
-        bounds=[]
-        prev_val=False
-        for i in range(len(is_interior)):
-            if is_interior[i]!=prev_val:
-                bounds.append(self.d_range[i])
-            prev_val=is_interior[i]
-            
-        if len(bounds)%2 !=0:
-            return
-        
-        if len(bounds)==2:
-            self.f_int=np.log(bounds[1]/bounds[0])/np.log(self.current_o/self.current_i)
-        else:
-            count= len(bounds)-1
-            f_int_sum=0
-            bottom=np.log(self.current_o/self.current_i)
-            while count >0:
-                f_int_sum+= np.log(bounds[count]/bounds[count-1])/bottom
-                count= count -2
-            
-            self.f_int=f_int_sum
-        return self.f_int
-    
-    '''def planet_class(self,dist, start_age=1e7):
-        
-        pclass='undefined'
-        if self.age[-1]<start_age:
-            return pclass
-           
-        start_ind=np.where(self.age>start_age)[0][0]
-        
-        #make sure it is bounds for the Kopparapu HZ
-        if self.Teff[start_ind:].max()> self.Tmax or self.Teff[start_ind:].min()<self.Tmin:
-            return pclass
-        
-        f_i =interpolate.interp1d(self.age,self.r_inner)
-        f_o =interpolate.interp1d(self.age,self.r_outer)
-
-        initial_i = f_i(start_age).item()
-        initial_o = f_o(start_age).item()
-    
-        ro_min=np.nanmin(self.r_outer[start_ind:])
-        #ind_ro_min=np.where(r_outer==ro_min)[0]
-        #age_ro_min=age[ind_ro_min]
-
-        ri_max=np.nanmax(self.r_inner[start_ind:])
-        #ind_ri_max=np.where(r_inner==ri_max)[0]
-        #age_ri_max=age[ind_ri_max]
-
-
-        if ro_min <initial_i or ri_max > initial_o or ri_max>ro_min:
-            self.sCHZ_i= -1
-            self.sCHZ_o= -1
-        else:
-            self.sCHZ_o= min(ro_min,initial_o)
-            self.sCHZ_i= max(ri_max,initial_i)
-        return'''
-    
     def plot_HZ(self,CHZ_start_age=1e7,include_sCHZ=False, include_start_age=False):
+        '''
+        plot the HZ as a function of time
+
+        Parameters
+        ----------
+        CHZ_start_age : float, optional
+            DESCRIPTION. Time where continuous habitability is considered to start in yrs
+            The default is 1e7.
+        include_sCHZ : bool, optional
+            DESCRIPTION. Plot region in the sustained CHZ. The default is False.
+        include_start_age : bool, optional
+            DESCRIPTION. Plot CHZ start age as a dashed vertical line.
+            The default is False.
+
+        Returns
+        -------
+        pyplot figure and axes
+        '''
         if len(self.age)<=1:
             return 0
         hz_fig, hz_ax = plt.subplots()
@@ -664,35 +626,37 @@ class HZ_evolution:
                 hz_ax.axhline(y=self.sCHZ_i,ls=':',color='green')
                 hz_ax.axhline(y=self.sCHZ_o,ls=':',color='green')
         return hz_fig, hz_ax
-    
-    #relic from back when drange and tau_arr were saved as part of object    
-    def plot_tau(self, d_range,tau):
-        if len(self.age)<=1:
-            return 0
+
+
+class HZ_planet(HZ_evolution):
+
+    def __init__(self, age,L,Teff,Dist=None,
+                 HZ_form="K13",
+                 custom_inner_HZ_func=None,
+                 custom_outer_HZ_func=None):
+        super().__init__(age, L, Teff, HZ_form=HZ_form,
+                         custom_inner_HZ_func=custom_inner_HZ_func,
+                         custom_outer_HZ_func=custom_outer_HZ_func)
+        self.Dist= Dist
         
-        tau_fig, tau_ax = plt.subplots()
-        tau_ax.plot(d_range,tau)
-        tau_ax.set_xlabel("distance (AU)")
-        tau_ax.set_ylabel("Habitable Duration (yr)")
-        return tau_fig, tau_ax
-
-
-class HZ_planet:
-    #a is semimajor axis in au
-    def __init__(self, a,hz_evol):
-        self.a= a
-        self.model=hz_evol
-        self.Seff= self.model.L/pow(self.a,2)
+        if self.Dist==None:
+            print("Error: Planet Distance not defined")
+            return
+        
+        self.Seff= self.L/pow(self.Dist,2)
+        self.current_age= self.age[-1]
     
     def get_tau(self, **kwargs):
-        self.tau=self.model.obj_calc_tau(self.a,**kwargs)
+        self.tau=self.obj_calc_tau(self.Dist,**kwargs)
+        return self.tau
         
     def get_t_int(self, **kwargs):
-        self.t_int=self.model.obj_calc_t_interior(self.a,**kwargs)
+        self.t_int=self.obj_calc_t_interior(self.Dist,**kwargs)
+        return self.t_int
         
     def get_t_ext(self, **kwargs):
-        self.t_ext=self.model.obj_calc_t_exterior(self.a,**kwargs)
-        
+        self.t_ext=self.obj_calc_t_exterior(self.Dist,**kwargs)
+        return self.t_ext
 
 #turn MIST evolutionary track into HZ evolution object
 def HZ_evolution_MIST(track,eep,**kwargs):
@@ -1053,19 +1017,18 @@ def H_fixed_tau(tau, fixed_age=2.0):
             H[t]=1.9
     return H
 
-
-
-#calculate Tuchow and Wright 2020 biosignature metrics
-#age in yrs
-#not normalized to solar values, currently doing that afterwards
-#hab_start_age in yr
-#kwargs const, b, fixed_age for specific versions of H
-#HZ form options are K13: Kopparapu 2013, and R18 Ramirez 2018
-#old versions should work with cold_starts=True
 #still using old function for tau, change?
 def calc_B(L, Teff,age,hab_start_age=1e7,H_form=None,Gamma_form=None,cold_starts=True,
            nd=500, const=1.0,b=0.1, fixed_age=2.0,HZ_form='K13',
            Gamma_norm=1.0, A=1.0):
+    '''calculate Tuchow and Wright 2020 biosignature metrics
+    age in yrs
+    not normalized to solar values, currently doing that afterwards
+    hab_start_age in yr
+    kwargs const, b, fixed_age for specific versions of H
+    HZ form options are K13: Kopparapu 2013, and R18 Ramirez 2018
+    old versions should work with cold_starts=True'''
+    
     if age[-1] <= hab_start_age:
         B =0.0
         return B
@@ -1140,11 +1103,10 @@ def calc_B(L, Teff,age,hab_start_age=1e7,H_form=None,Gamma_form=None,cold_starts
     return B
 
 
-#same as calc_B but for MIST tracks
-#track is slice of MIST tracks dataframe for fixed mass and FeH
-#might be quicker to include loop in this function
-#currect_eep is eep you want to calculate B for
 def calc_B_MIST(current_eep,track,**kwargs):
+    '''same as calc_B but for MIST tracks
+    track is slice of MIST tracks dataframe for fixed mass and FeH
+    current_eep is eep you want to calculate B for'''
     
     ZAMS_eep=202
     RGB_eep=605 #tip of red giant branch
@@ -1162,8 +1124,8 @@ def calc_B_MIST(current_eep,track,**kwargs):
         B= calc_B(L, Teff,age,**kwargs)
         return B
 
-#general version of calc B for kiauhoku model grids
 def calc_B_general(current_eep,track,**kwargs):
+    '''general version of calc B for kiauhoku model grids'''
     ZAMS_eep=202
     RGB_eep=605 #tip of red giant branch
     #eeps= track.index
