@@ -631,20 +631,25 @@ class HZ_evolution:
 
 
 class HZ_planet(HZ_evolution):
-
-    def __init__(self, age,L,Teff,Dist=None,
+#Period in days
+    def __init__(self, age,L,Teff,Dist=None, Period=None,Mstar=None,
                  HZ_form="K13",
                  custom_inner_HZ_func=None,
                  custom_outer_HZ_func=None):
         super().__init__(age, L, Teff, HZ_form=HZ_form,
                          custom_inner_HZ_func=custom_inner_HZ_func,
                          custom_outer_HZ_func=custom_outer_HZ_func)
-        self.Dist= Dist
+        
         
         if self.Dist==None:
-            print("Error: Planet Distance not defined")
-            return
-        
+            if Period==None or Mstar==None:
+                print("Error: Planet Distance not defined")
+                return
+            else:
+                self.Dist= P_to_d(Period, Mstar)
+        else:
+            self.Dist= Dist
+            
         self.Seff= self.L/pow(self.Dist,2)
         self.current_age= self.age[-1]
     
