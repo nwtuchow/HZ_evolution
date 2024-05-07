@@ -9,6 +9,8 @@ from scipy import interpolate
 from scipy import optimize
 import astropy.constants as cons
 import astropy.units as u
+from isochrones.mist import MIST_EvolutionTrack
+import pandas as pd
 
 
 #Constants for HZ polynomials
@@ -80,7 +82,7 @@ G_const= cons.G.to((u.AU**3)/u.Msun/(u.day**2)).value
 
 
 def P_to_d(Period,Mtot):
-    '''calculates planet semimajor axis using keplers 3rd law
+    '''calculates planet semimajor axis in AU using keplers 3rd law
     Period in days, Mtot in Msun
     '''
     d= pow(G_const*Mtot*pow(Period,2)/(4*pow(np.pi,2)),(1/3))
@@ -647,18 +649,18 @@ class HZ_planet(HZ_evolution):
         self.current_age= self.age[-1]
     
     def get_tau(self, **kwargs):
-        self.tau=self.obj_calc_tau(self.Dist,**kwargs)
+        self.tau=self.obj_calc_tau(self.Dist,**kwargs)[0]
         return self.tau
         
     def get_t_int(self, **kwargs):
-        self.t_int=self.obj_calc_t_interior(self.Dist,**kwargs)
+        self.t_int=self.obj_calc_t_interior(self.Dist,**kwargs)[0]
         return self.t_int
         
     def get_t_ext(self, **kwargs):
-        self.t_ext=self.obj_calc_t_exterior(self.Dist,**kwargs)
+        self.t_ext=self.obj_calc_t_exterior(self.Dist,**kwargs)[0]
         return self.t_ext
 
-#turn MIST evolutionary track into HZ evolution object
+#turn MIST evolutionary track (slice of dataframe) into HZ evolution object
 def HZ_evolution_MIST(track,eep,**kwargs):
     if eep==0:
         L=[np.nan]
@@ -670,6 +672,22 @@ def HZ_evolution_MIST(track,eep,**kwargs):
         age=(track.star_age.loc[:eep]).to_numpy()
     
     return HZ_evolution(age, L, Teff,**kwargs)
+
+def generate_interpolated_evol_track(pars,track_cols=['age','logL','Teff'],n_eep=400,mist_track=MIST_EvolutionTrack()):
+    eep_arr=np.linspace(1,pars[1],n_eep)
+    pts= np.empty((3,n_eep))
+
+    pts[0,:]=pars[0]*np.ones(n_eep)
+    pts[1,:]=eep_arr
+    pts[2,:]=pars[2]*np.ones(n_eep)
+    
+    trackdf=pd.DataFrame()
+    trackdf.index=eep_arr
+    trackdf[track_cols]= np.nan*np.ones((n_eep,len(track_cols)))
+    for q in range(n_eep):
+        trackdf.iloc[q]=mist_track.interp_value(list(pts[:,q]), track_cols)
+    
+    return trackdf
 
 
 #calculate the habitable duration of a planet at separation 'd' for star of age 'age'
@@ -773,52 +791,6 @@ def calc_tau_coarse(d, age, r_inner,r_outer,only_CHZ=False):
                 t_life[k] =0.0
             
     #t_life=t_life -t_0
-    t_life[t_life<0.0]=0.0
-            
-    return t_life
-
-#old version of tau
-def calc_tau_old(d, age, r_inner,r_outer,t_0=0.2,only_CHZ=False):
-    
-    if only_CHZ==False:
-        ri_age= interpolate.interp1d(r_inner,age) #this is what breaks for non-monotonically changing boundaries
-        ro_age= interpolate.interp1d(r_outer, age)
-    
-    
-    ri_min=min(r_inner)
-    ro_max=max(r_outer)
-    ri_max= max(r_inner) #CHZ inner for t1=0
-    ro_min= min(r_outer) #CHZ outer for t1=0
-    
-    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
-        d= np.array([d])
-    
-    nd=len(d)
-    t_life=np.zeros(nd)
-    
-    for k in range(nd):
-        if d[k] < r_inner[-1] or d[k] > r_outer[-1]:
-            t_life[k]=0.0 #case of if outside of IHZ
-        elif d[k] >= ri_max and d[k]<=ro_min:
-            t_life[k] = age[-1]-age[0] # if in CHZ, subtract out age at ZAMS
-        else:
-            if only_CHZ==True:
-                t_life[k]=0.0
-                continue
-            #for BHZ planets
-            inner_age=-1
-            outer_age=-1
-            if d[k]>= ri_min and d[k]<= ri_max:
-                inner_age= float(ri_age(d[k]))
-            if d[k]>= ro_min and d[k]<=ro_max:
-                outer_age= float(ro_age(d[k]))
-            
-            if inner_age!=-1 or outer_age!=-1:
-                t_life[k]= age[-1]-max(inner_age,outer_age)
-            else:
-                t_life[k] =0.0
-            
-    t_life=t_life -t_0
     t_life[t_life<0.0]=0.0
             
     return t_life

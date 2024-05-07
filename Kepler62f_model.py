@@ -201,8 +201,8 @@ t_ext_quant=np.nanquantile(t_ext_arr,[0.16, 0.5, 0.84])
 #%%
 best_pars= [mass_quants[1],eep_quants[1],feh_quants[1]]
 track_cols=['age','logL','Teff']
-n_eep=400
-eep_arr=np.linspace(1,best_pars[1],n_eep)
+n_eep=800
+'''eep_arr=np.linspace(1,best_pars[1],n_eep)
 
 pts= np.empty((3,n_eep))
 
@@ -210,10 +210,81 @@ pts[0,:]=best_pars[0]*np.ones(n_eep)
 pts[1,:]=eep_arr
 pts[2,:]=best_pars[2]*np.ones(n_eep)
 
-#%% make loop to get Seff
+logL_arr=np.empty(n_eep)
+Teff_arr=np.empty(n_eep)
+logage_arr= np.empty(n_eep)
+for q in range(n_eep):
+    temp_output=mist_track.interp_value(list(pts[:,q]), track_cols)
+    logage_arr[q]=temp_output[0]
+    logL_arr[q]=temp_output[1]
+    Teff_arr[q]=temp_output[2]
+'''
+trackdf=hz.generate_interpolated_evol_track(best_pars,track_cols=track_cols,n_eep=n_eep,mist_track=mist_track)
+best_d_planet = hz.P_to_d(Period, best_pars[0]) 
 
+age_input= 10**trackdf['age'].values
+L_input= 10**trackdf['logL'].values
+Teff_input= trackdf['Teff'].values
+best_planet_obj= hz.HZ_planet(age_input,L_input,Teff_input,Dist=best_d_planet,
+                         HZ_form="K13_optimistic")  
+best_time_bp= age_input[-1] -age_input
+
+best_S_arr=best_planet_obj.Seff
+
+
+#%% make loop to get Seff
+ntracks=25
+time_arr= np.empty((ntracks,n_eep))
+S_eff_arr= np.empty((ntracks,n_eep))
+    
+rand_inds=np.random.randint(len(flat_samples),size=ntracks)
+
+for q in range(ntracks):
+    ind= rand_inds[q]
+    pars=flat_samples[ind,:]
+    d_planet = hz.P_to_d(Period, pars[0])
+    temptrack=hz.generate_interpolated_evol_track(pars,track_cols=track_cols,n_eep=n_eep,mist_track=mist_track)
+    age_input= 10**temptrack['age'].values
+    L_input= 10**temptrack['logL'].values
+    Teff_input= temptrack['Teff'].values
+    temp_planet=hz.HZ_planet(age_input,L_input,Teff_input,Dist=d_planet,
+                             HZ_form="K13_optimistic")
+    time_bp= age_input[-1] -age_input
+    time_arr[q,:]= time_bp
+
+    S_arr=best_planet_obj.Seff
+    S_eff_arr[q,:]= S_arr
+    
 #could plug into Planet object
 
 #temp_output= model_output(pars,prop_names=mist_cols,mist_track=mist_track)
 #L=10**temp_output['logL']
 #eff= hz.P_to_Seff(Period,temp_output['mass'],L)
+
+hz_inner_flux= hz.hz_flux_boundary(best_planet_obj.Teff,hz.c_recent_venus)
+hz_outer_flux= hz.hz_flux_boundary(best_planet_obj.Teff,hz.c_early_mars)
+
+#%%plotting tracks
+
+S_fig, S_ax = plt.subplots()
+
+
+for j in range(ntracks):
+    S_ax.plot(time_arr[j,:],S_eff_arr[j,:],color='gray',alpha=0.5)
+
+S_ax.plot(best_time_bp,best_S_arr,color='black',lw=2)
+
+S_ax.plot(best_time_bp,hz_inner_flux,color='green',ls='--')
+S_ax.plot(best_time_bp,hz_outer_flux,color='green',ls='--')
+
+S_ax.invert_xaxis()
+S_ax.set_xlabel("Time before present (yr)")
+S_ax.set_ylabel("S_eff")
+S_ax.set_ylim([0.0,2.1])
+S_ax.set_xscale('log')
+
+
+hz_fig, hz_ax= best_planet_obj.plot_HZ()
+hz_ax.axhline(y=best_d_planet,ls='--')
+hz_ax.set_ylim([0,2])
+hz_ax.set_xlim([1e5,7e8])
