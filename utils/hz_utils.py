@@ -640,8 +640,7 @@ class HZ_planet(HZ_evolution):
                          custom_inner_HZ_func=custom_inner_HZ_func,
                          custom_outer_HZ_func=custom_outer_HZ_func)
         
-        
-        if self.Dist==None:
+        if Dist==None:
             if Period==None or Mstar==None:
                 print("Error: Planet Distance not defined")
                 return

@@ -45,7 +45,7 @@ target_dict={'Teff':(star_Teff,star_dTeff),
              'logg':(star_logg,star_dlogg*4),
              'feh':(star_feh,star_dfeh*2),
              'logL':(star_logL,star_dlogL),
-             'mass':(star_mass,star_dmass*4)}
+             'mass':(star_mass,star_dmass*10)}
 
 #%% define priors
 #pars=[mass,eep,feh]
@@ -280,9 +280,9 @@ S_ax.plot(best_time_bp,hz_outer_flux,color='green',ls='--')
 S_ax.invert_xaxis()
 S_ax.set_xlabel("Time before present (yr)")
 S_ax.set_ylabel("S_eff")
-S_ax.set_ylim([0.0,2.1])
+S_ax.set_ylim([2e-1,2.1])
 S_ax.set_xscale('log')
-
+#S_ax.set_yscale('log')
 
 hz_fig, hz_ax= best_planet_obj.plot_HZ()
 hz_ax.axhline(y=best_d_planet,ls='--')
