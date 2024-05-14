@@ -201,7 +201,9 @@ t_ext_quant=np.nanquantile(t_ext_arr,[0.16, 0.5, 0.84])
 #%%
 best_pars= [mass_quants[1],eep_quants[1],feh_quants[1]]
 track_cols=['age','logL','Teff']
-n_eep=800
+n_eep=400
+
+start_age=0.0
 '''eep_arr=np.linspace(1,best_pars[1],n_eep)
 
 pts= np.empty((3,n_eep))
@@ -221,21 +223,30 @@ for q in range(n_eep):
 '''
 trackdf=hz.generate_interpolated_evol_track(best_pars,track_cols=track_cols,n_eep=n_eep,mist_track=mist_track)
 best_d_planet = hz.P_to_d(Period, best_pars[0]) 
-
 age_input= 10**trackdf['age'].values
 L_input= 10**trackdf['logL'].values
 Teff_input= trackdf['Teff'].values
 best_planet_obj= hz.HZ_planet(age_input,L_input,Teff_input,Dist=best_d_planet,
-                         HZ_form="K13_optimistic")  
+                         HZ_form="K13_optimistic")
+
+cond= (age_input>=start_age)  
 best_time_bp= age_input[-1] -age_input
 
 best_S_arr=best_planet_obj.Seff
 
+best_time_bp=best_time_bp[cond]
+best_S_arr=best_S_arr[cond]
+
+
+hz_inner_flux= hz.hz_flux_boundary(best_planet_obj.Teff[cond],hz.c_recent_venus)
+hz_outer_flux= hz.hz_flux_boundary(best_planet_obj.Teff[cond],hz.c_early_mars)
+
 
 #%% make loop to get Seff
-ntracks=25
+ntracks=10
 time_arr= np.empty((ntracks,n_eep))
 S_eff_arr= np.empty((ntracks,n_eep))
+age_track_arr=np.empty((ntracks,n_eep))
     
 rand_inds=np.random.randint(len(flat_samples),size=ntracks)
 
@@ -251,8 +262,9 @@ for q in range(ntracks):
                              HZ_form="K13_optimistic")
     time_bp= age_input[-1] -age_input
     time_arr[q,:]= time_bp
+    age_track_arr[q,:]=age_input
 
-    S_arr=best_planet_obj.Seff
+    S_arr=temp_planet.Seff
     S_eff_arr[q,:]= S_arr
     
 #could plug into Planet object
@@ -261,16 +273,14 @@ for q in range(ntracks):
 #L=10**temp_output['logL']
 #eff= hz.P_to_Seff(Period,temp_output['mass'],L)
 
-hz_inner_flux= hz.hz_flux_boundary(best_planet_obj.Teff,hz.c_recent_venus)
-hz_outer_flux= hz.hz_flux_boundary(best_planet_obj.Teff,hz.c_early_mars)
-
 #%%plotting tracks
 
 S_fig, S_ax = plt.subplots()
 
 
 for j in range(ntracks):
-    S_ax.plot(time_arr[j,:],S_eff_arr[j,:],color='gray',alpha=0.5)
+    cond= (age_track_arr[j,:]>=start_age)
+    S_ax.plot(time_arr[j,cond],S_eff_arr[j,cond],color='gray',alpha=0.25)
 
 S_ax.plot(best_time_bp,best_S_arr,color='black',lw=2)
 
@@ -282,7 +292,7 @@ S_ax.set_xlabel("Time before present (yr)")
 S_ax.set_ylabel("S_eff")
 S_ax.set_ylim([2e-1,2.1])
 S_ax.set_xscale('log')
-#S_ax.set_yscale('log')
+S_ax.set_yscale('log')
 
 hz_fig, hz_ax= best_planet_obj.plot_HZ()
 hz_ax.axhline(y=best_d_planet,ls='--')

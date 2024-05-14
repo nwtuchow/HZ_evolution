@@ -101,7 +101,19 @@ for i in range(nages):
     
     flat_samples = sampler.get_chain(discard=600,thin=10, flat=True)
     samples_arr.append(flat_samples)
+#%%
+import pickle
 
+fname='outputs/samples_arr.pkl'
+with open(fname,'wb') as f1:
+    pickle.dump(samples_arr,f1) 
+
+#%%
+import pickle
+
+fname='outputs/samples_arr.pkl'
+with open(fname,'rb') as f2:
+    samples_arr=pickle.load(f2)
 #%% construct tau interpolator
 
 Seff_min=0.1
@@ -147,6 +159,7 @@ age_arr=np.ones((n_points,nages))*np.nan
 tau_arr=np.ones((n_points,nages))*np.nan
 t_int_arr=np.ones((n_points,nages))*np.nan
 t_ext_arr=np.ones((n_points,nages))*np.nan
+
 
 #K2-18 b properties
 Period= 267.29 
@@ -199,13 +212,13 @@ logt_arr= np.log10(tau_quant_arr[:,1])
 
 #t_arr -tau_quant_arr[:,0]
 #tau_quant_arr[:,2]-t_arr
-logt_err=[logt_arr -np.log10(tau_quant_arr[:,0]),
-          np.log10(tau_quant_arr[:,2])-logt_arr]
+logt_err=np.array([logt_arr -np.log10(tau_quant_arr[:,0]),
+          np.log10(tau_quant_arr[:,2])-logt_arr])
 fig, ax = plt.subplots()
 
 logtint_arr= np.log10(t_int_quant_arr[:,1])
-logtint_err=[logtint_arr -np.log10(t_int_quant_arr[:,0]),
-          np.log10(t_int_quant_arr[:,2])-logtint_arr]
+logtint_err=np.array([logtint_arr -np.log10(t_int_quant_arr[:,0]),
+          np.log10(t_int_quant_arr[:,2])-logtint_arr])
 
 ax.errorbar(ages,logt_arr,yerr=logt_err,ls='none',marker='o', label= 'log(tau)') 
 ax.errorbar(ages,logtint_arr, yerr=logtint_err,ls='none',marker='^', label= 'log(t_int)')
@@ -213,6 +226,146 @@ ax.set_xlabel("log(age)")
 ax.set_ylabel("log(time)")
 ax.legend()
 
+#%%
+masses=np.empty(nages)
+eeps=np.empty(nages)
+fehs=np.empty(nages)
+
+track_cols=['age','logL','Teff']
+n_eep=400
+
+time_arr= np.empty((nages,n_eep))
+S_eff_arr= np.empty((nages,n_eep))
+age_track_arr=np.empty((nages,n_eep))
+
+for q in range(nages):
+    selected_samples=samples_arr[q]
+    masses[q]=np.quantile(selected_samples[:,0],0.5)
+    eeps[q]=np.quantile(selected_samples[:,1],0.5)
+    fehs[q]=np.quantile(selected_samples[:,2],0.5)
+    pars=np.array([masses[q],eeps[q],fehs[q]])
+    
+    d_planet = hz.P_to_d(Period, pars[0])
+    temptrack=hz.generate_interpolated_evol_track(pars,track_cols=track_cols,n_eep=n_eep,mist_track=mist_track)
+    age_input= 10**temptrack['age'].values
+    L_input= 10**temptrack['logL'].values
+    Teff_input= temptrack['Teff'].values
+    temp_planet=hz.HZ_planet(age_input,L_input,Teff_input,Dist=d_planet,
+                             HZ_form="K13_optimistic")
+    time_bp= age_input[-1] -age_input
+    time_arr[q,:]= time_bp
+    age_track_arr[q,:]=age_input
+
+    S_arr=temp_planet.Seff
+    S_eff_arr[q,:]= S_arr
+#%%
+S_fig, S_ax = plt.subplots()
+start_age=0.0
+for l in range(nages):
+    cond= (age_track_arr[l,:]>=start_age)
+    S_ax.plot(time_arr[l,cond],S_eff_arr[l,cond])
+
+S_ax.invert_xaxis()
+S_ax.set_xlabel("Time before present (yr)")
+S_ax.set_ylabel("S_eff")
+S_ax.set_ylim([2e-1,2.1])
+#S_ax.set_xscale('log')
+#S_ax.set_xlim([1e5,2e9])
+
+
+#%%
+selected_age= ages[6]
+selected_samples=samples_arr[6]
+
+mass_quants=np.quantile(selected_samples[:,0],[0.16, 0.5, 0.84] )
+eep_quants=np.quantile(selected_samples[:,1],[0.16, 0.5, 0.84] )
+feh_quants=np.quantile(selected_samples[:,2],[0.16, 0.5, 0.84] )
+best_pars=[mass_quants[1],eep_quants[1],feh_quants[1]]
+
+track_cols=['age','logL','Teff']
+n_eep=400
+
+
+start_age=0.0
+
+trackdf=hz.generate_interpolated_evol_track(best_pars,track_cols=track_cols,n_eep=n_eep,mist_track=mist_track)
+best_d_planet = hz.P_to_d(Period, best_pars[0]) 
+age_input= 10**trackdf['age'].values
+L_input= 10**trackdf['logL'].values
+Teff_input= trackdf['Teff'].values
+best_planet_obj= hz.HZ_planet(age_input,L_input,Teff_input,Dist=best_d_planet,
+                         HZ_form="K13_optimistic")
+
+cond= (age_input>=start_age)  
+best_time_bp= age_input[-1] -age_input
+
+best_S_arr=best_planet_obj.Seff
+
+best_time_bp=best_time_bp[cond]
+best_S_arr=best_S_arr[cond]
+best_age=age_input[cond]
+
+hz_inner_flux= hz.hz_flux_boundary(best_planet_obj.Teff[cond],hz.c_recent_venus)
+hz_outer_flux= hz.hz_flux_boundary(best_planet_obj.Teff[cond],hz.c_early_mars)
+
+
+#%% make loop to get Seff
+ntracks=100
+time_arr= np.empty((ntracks,n_eep))
+S_eff_arr= np.empty((ntracks,n_eep))
+age_track_arr=np.empty((ntracks,n_eep))
+    
+rand_inds=np.random.randint(len(selected_samples),size=ntracks)
+
+for q in range(ntracks):
+    ind= rand_inds[q]
+    pars=selected_samples[ind,:]
+    d_planet = hz.P_to_d(Period, pars[0])
+    temptrack=hz.generate_interpolated_evol_track(pars,track_cols=track_cols,n_eep=n_eep,mist_track=mist_track)
+    age_input= 10**temptrack['age'].values
+    L_input= 10**temptrack['logL'].values
+    Teff_input= temptrack['Teff'].values
+    temp_planet=hz.HZ_planet(age_input,L_input,Teff_input,Dist=d_planet,
+                             HZ_form="K13_optimistic")
+    time_bp= age_input[-1] -age_input
+    time_arr[q,:]= time_bp
+    age_track_arr[q,:]=age_input
+
+    S_arr=temp_planet.Seff
+    S_eff_arr[q,:]= S_arr
+    
+#could plug into Planet object
+
+#temp_output= model_output(pars,prop_names=mist_cols,mist_track=mist_track)
+#L=10**temp_output['logL']
+#eff= hz.P_to_Seff(Period,temp_output['mass'],L)
+
+#%%plotting tracks
+
+S_fig, S_ax = plt.subplots()
+
+
+for j in range(ntracks):
+    cond= (age_track_arr[j,:]>=start_age)
+    S_ax.plot(age_track_arr[j,cond],S_eff_arr[j,cond],color='gray',alpha=0.25)
+
+S_ax.plot(best_age,best_S_arr,color='black',lw=2)
+
+S_ax.plot(best_age,hz_inner_flux,color='green',ls='--')
+S_ax.plot(best_age,hz_outer_flux,color='green',ls='--')
+
+#S_ax.invert_xaxis()
+S_ax.set_xlabel("Age (yr)")
+S_ax.set_ylabel("S_eff")
+S_ax.set_ylim([2e-1,2.1])
+S_ax.set_xscale('log')
+S_ax.set_xlim([1e5,2e9])
+#S_ax.set_yscale('log')
+
+hz_fig, hz_ax= best_planet_obj.plot_HZ()
+hz_ax.axhline(y=best_d_planet,ls='--')
+hz_ax.set_ylim([0,2])
+hz_ax.set_xlim([1e5,2e9])
 #%%
 '''   
 #%%

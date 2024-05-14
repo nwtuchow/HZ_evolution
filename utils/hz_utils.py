@@ -677,8 +677,8 @@ def HZ_evolution_MIST(track,eep,**kwargs):
     
     return HZ_evolution(age, L, Teff,**kwargs)
 
-def generate_interpolated_evol_track(pars,track_cols=['age','logL','Teff'],n_eep=400,mist_track=MIST_EvolutionTrack()):
-    eep_arr=np.linspace(1,pars[1],n_eep)
+def generate_interpolated_evol_track(pars,track_cols=['age','logL','Teff'],n_eep=400,eep_start=1,mist_track=MIST_EvolutionTrack()):
+    eep_arr=np.linspace(eep_start,pars[1],n_eep)
     pts= np.empty((3,n_eep))
 
     pts[0,:]=pars[0]*np.ones(n_eep)
