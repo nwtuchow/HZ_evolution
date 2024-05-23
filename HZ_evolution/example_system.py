@@ -22,7 +22,7 @@ from isochrones.interp import DFInterpolator
 import scipy.stats as st
 from multiprocessing import Pool, cpu_count
 import utils.hz_utils as hz
-from tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
+from utils.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 import matplotlib.pyplot as plt
 import isochrones.priors as priors
 

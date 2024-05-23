@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Calculates habitable zones and HZ evolution
+Utilities to calculate habitable zones and HZ evolution
 """
 
 import numpy as np
