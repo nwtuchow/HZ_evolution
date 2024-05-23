@@ -7,11 +7,11 @@ Created on Mon Mar  4 15:29:06 2024
 """
 
 from isochrones.mist import MISTEvolutionTrackGrid
-import utils.hz_utils as hz
+import HZ_evolution.hz_utils as hz
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from utils.interp_utils import construct_interpolator_4D, construct_interpolator_3D
+from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 
 
 
