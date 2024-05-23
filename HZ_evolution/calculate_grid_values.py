@@ -7,7 +7,7 @@ Created on Tue Aug 22 17:20:36 2023
 """
 
 from isochrones.mist import MISTEvolutionTrackGrid
-import utils.hz_utils as hz
+import hz_utils as hz
 import numpy as np
 import pandas as pd
 import time

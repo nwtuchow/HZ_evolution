@@ -13,7 +13,8 @@ setup(
           'astropy',
           'scipy',
           'emcee',
-          'isochrones'],
+          'isochrones',
+          'corner'],
       packages=['HZ_evolution'],
       include_package_data=True
       )

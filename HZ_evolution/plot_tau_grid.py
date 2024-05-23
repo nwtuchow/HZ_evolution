@@ -7,7 +7,7 @@ Created on Thu Mar 14 16:55:23 2024
 """
 
 from isochrones.mist import MISTEvolutionTrackGrid,MIST_EvolutionTrack
-import utils.hz_utils as hz
+import hz_utils as hz
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
