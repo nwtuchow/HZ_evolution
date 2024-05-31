@@ -2,7 +2,7 @@ __pycache__/
 .spyproject/
 .DS_Store
 **/__pycache__/
-outputs/**
+HZ_evolution/outputs/**
 .DS_Store
 .DS_Store
 /build

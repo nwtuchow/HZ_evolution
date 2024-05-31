@@ -11,7 +11,10 @@ import astropy.constants as cons
 import astropy.units as u
 from isochrones.mist import MIST_EvolutionTrack
 import pandas as pd
+import os
 
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+OUTPUT_DIR= ROOT_DIR+'/outputs/'
 
 #Constants for HZ polynomials
 #Seff_sun, a,b,c,d

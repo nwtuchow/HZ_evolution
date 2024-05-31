@@ -7,7 +7,7 @@ Created on Tue Aug 22 17:20:36 2023
 """
 #may require a decent amount of ram to run
 from isochrones.mist import MISTEvolutionTrackGrid
-import hz_utils as hz
+from hz_utils import ROOT_DIR, OUTPUT_DIR, HZ_evolution_MIST
 import numpy as np
 import pandas as pd
 import time
@@ -16,13 +16,9 @@ import time
 track_grid = MISTEvolutionTrackGrid()
 df=track_grid.df
 
-
-
 query_str='(initial_mass<=2.0) and (EEP < 605) and (EEP > 5)'
 
 df= df.query(query_str)
-#track_df= df.loc[(df['initial_mass']<5.0) & (df['EEP']<605) & (df['EEP']>5)  \
-#       & (df['initial_feh']>=-1.0)]
 
 index_names= df.index.names
 fehs= df.index.levels[0].values
@@ -50,7 +46,7 @@ for feh in new_ind.levels[0]:
             if (feh,mass,eep) not in df.index:
                 continue
             try:
-                evol= hz.HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
+                evol= HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
                 temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
                 temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='default')
                 tau_df.loc[(feh,mass,eep),'tau']=temp_tau_arr
@@ -64,7 +60,7 @@ for feh in new_ind.levels[0]:
                 
                 
             except:
-                evol= hz.HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
+                evol= HZ_evolution_MIST(track, eep,HZ_form="K13_optimistic")
                 temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
                 temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='coarse')
                 tau_df.loc[(feh,mass,eep),'tau']=temp_tau_arr
@@ -74,9 +70,9 @@ for feh in new_ind.levels[0]:
                 
                 temp_t_ext=evol.obj_calc_t_exterior(temp_d_arr,mode='coarse')
                 tau_df.loc[(feh,mass,eep),'t_ext']=temp_t_ext
-                print("Problem at FeH = %.1f , Mass = %.2f, EEP = %d" %(feh,mass,eep))
+                #print("Problem at FeH = %.1f , Mass = %.2f, EEP = %d" %(feh,mass,eep))
 
 t2=time.perf_counter()
 print("Took ", (t2-t1), " seconds")
 #previously took 5054 seconds
-tau_df.to_csv("outputs/tau_df_K13_optimistic_4D.csv")
+tau_df.to_csv(OUTPUT_DIR+"tau_df_K13_optimistic_4D.csv")
