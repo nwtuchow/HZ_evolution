@@ -932,23 +932,7 @@ def calc_t_exterior_coarse(d, age, r_inner,r_outer):
         elif d[q]<=ro_min:
             t_ext[q]=0
     
-    return t_ext
-
-
-'''def planet_class(dist,age,r_inner, r_outer,start_age=1e7):
-    
-    if age[-1]< start_age:
-        pclass = 'undefined'
-        return pclass
-    start_ind=np.where(age>start_age)[0][0]
-    
-    ri_min= min(r_inner)
-    ri_max= max(r_outer)
-    ro_min=min(r_outer)
-'''    
-    
-    
-    
+    return t_ext    
 
 
 #H for instantaneous HZ

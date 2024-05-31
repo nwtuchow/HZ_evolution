@@ -2,6 +2,8 @@ __pycache__/
 .spyproject/
 .DS_Store
 **/__pycache__/
-**/outputs/**
+outputs/**
 .DS_Store
 .DS_Store
+/build
+/HZ_evolution.egg-info
