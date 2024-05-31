@@ -2,8 +2,11 @@ __pycache__/
 .spyproject/
 .DS_Store
 **/__pycache__/
-HZ_evolution/outputs/**
 .DS_Store
 .DS_Store
 /build
 /HZ_evolution.egg-info
+/HZ_evolution/outputs/*.txt
+/HZ_evolution/outputs/*.csv
+/HZ_evolution/outputs/*.pkl
+
