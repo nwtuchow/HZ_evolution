@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov  6 14:48:07 2023
-Example usage of the HZ_evolution code to 
-@author: ntuchow
+Example usage of the HZ_evolution code for the Kepler 62 system
 """
 
 
@@ -11,18 +9,13 @@ Example usage of the HZ_evolution code to
 import sys
 import os
 os.environ["OMP_NUM_THREADS"] = "1" #prevent numpy from using multiple cores
-#os.environ["MKL_NUM_THREADS"] = "1" 
-#os.environ["NUMEXPR_NUM_THREADS"] = "1" 
 import pandas as pd
 import emcee
 import numpy as np
-from HZ_evolution.stat_model import log_posterior, sample_prior,model_output
+import HZ_evolution as hz
 from isochrones.mist import MIST_EvolutionTrack
 from isochrones.interp import DFInterpolator
 import scipy.stats as st
-#from multiprocessing import Pool, cpu_count
-import HZ_evolution.hz_utils as hz
-from HZ_evolution.tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
 import matplotlib.pyplot as plt
 import isochrones.priors as priors
 import multiprocessing as mp
@@ -63,7 +56,7 @@ global posterior_args
 posterior_args=[target_dict,prop_names, mist_track, prior_arr,[]]
 
 def ln_post_global(pars):
-    ln_post =log_posterior(pars, target_dict, prop_names, 
+    ln_post =hz.log_posterior(pars, target_dict, prop_names, 
                            mist_track, prior_arr,[])
     return ln_post
 
@@ -73,7 +66,7 @@ ndim=3
 nwalkers=32 #32
 nsamples=20000 #10000
 
-p0=sample_prior(nwalkers, ndim, prior_arr,special_ind=[])
+p0=hz.sample_prior(nwalkers, ndim, prior_arr,special_ind=[])
 
 #%% serial version
 sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_post_global) #for some reason multiprocessing requires this
@@ -81,7 +74,7 @@ state=sampler.run_mcmc(p0, 5, progress=False)
 samples=sampler.get_chain()
 sampler.reset()
 
-#%% multiprocessing version (not working for some reason)
+#%% multiprocessing version
 if __name__ == '__main__':
     with mp.Pool() as mcmcpool:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, ln_post_global, 
@@ -114,12 +107,12 @@ import corner
 corner_fig = corner.corner(flat_samples,labels=labels,quantiles=[0.16, 0.5, 0.84],show_titles=True)
 
 #%%
-np.savetxt('outputs/K62f_sys_mcmc_chain.txt', flat_samples)
+np.savetxt(hz.OUTPUT_DIR+'K62f_sys_mcmc_chain.txt', flat_samples)
 
 
 
 #%%
-flat_samples=np.loadtxt('outputs/K62f_sys_mcmc_chain.txt')
+flat_samples=np.loadtxt(hz.OUTPUT_DIR+'K62f_sys_mcmc_chain.txt')
 
 #%% construct tau interpolator
 mass_min=flat_samples[:,0].min()
@@ -137,7 +130,7 @@ feh_quants= np.quantile(flat_samples[:,2], [0.16, 0.5, 0.84])
 Seff_min=0.1
 Seff_max=2.1
 
-func_4d=construct_interpolator_4D(feh_min=feh_min,feh_max=feh_max,mass_min= mass_min,mass_max= mass_max,
+func_4d=hz.construct_interpolator_4D(feh_min=feh_min,feh_max=feh_max,mass_min= mass_min,mass_max= mass_max,
                            eep_min=eep_min,eep_max=eep_max,Seff_min=0.1,Seff_max=2.1)
 #%%
 mist_cols=['mass','logL','age']
@@ -157,7 +150,7 @@ for i in range(n_points):
     #if i%1000==0:
     #    print(i)
     pars=flat_samples[i,:]
-    temp_output= model_output(pars,prop_names=mist_cols,mist_track=mist_track)
+    temp_output= hz.model_output(pars,prop_names=mist_cols,mist_track=mist_track)
     L=10**temp_output['logL']
     Seff= hz.P_to_Seff(Period,temp_output['mass'],L)
     #['initial_Fe_H','initial_mass','EEP','S_eff']

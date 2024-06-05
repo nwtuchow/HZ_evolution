@@ -10,7 +10,7 @@ so run these scripts beforehand or these functions won't work'
 import pandas as pd
 from isochrones.interp import DFInterpolator
 import os
-from hz_utils import ROOT_DIR, OUTPUT_DIR
+from .hz_utils import ROOT_DIR, OUTPUT_DIR
 
 def calculate_grid():
     '''calculates habitable durations for the grid of MIST models at solar metallicity
@@ -65,7 +65,7 @@ def construct_interpolator_3D(mass_min= 0.1,mass_max= 2.0, eep_min=6,eep_max=605
     '''
     
     if not os.path.exists(fname):
-        print("Error: File '%s' not found." % fname)
+        print("Error: File '%s' not found. If you haven't run calculate_grid, do so before using this function" % fname)
         return
     
     index_cols=['initial_mass','EEP','S_eff']
@@ -129,7 +129,7 @@ def construct_interpolator_4D(feh_min=-2.0,feh_max=0.5,mass_min= 0.1,mass_max= 2
 
     '''
     if not os.path.exists(fname):
-        print("Error: File '%s' not found." % fname)
+        print("Error: File '%s' not found. If you haven't run calculate_grid_4D do so before using this function" % fname)
         return
         
     

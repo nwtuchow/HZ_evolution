@@ -6,10 +6,8 @@ statistical model
 @author: nxt5109
 """
 
-#import os
-#os.environ["OMP_NUM_THREADS"] = "1"
+
 from isochrones.mist import MIST_EvolutionTrack
-from isochrones.mist.bc import MISTBolometricCorrectionGrid
 import numpy as np
 import isochrones.priors as priors
 from scipy.stats import uniform
@@ -26,13 +24,14 @@ def log_gauss(p,dp,model_p):
     diff=p - model_p
     return LOG_ONE_OVER_ROOT_2PI+np.log(dp) -0.5*diff*diff/(dp*dp)
 
-#use scipy version instead
+'''#use scipy version instead
 def uniform_dist(x,bounds=(0,1)):
     diff =bounds[1]-bounds[0]
     f=0
     if x>=bounds[0] and x<=bounds[1]:
         f=1./diff
     return f
+'''
 
  #pars=[mass,eep,feh]   
 #prop names are properties we age fitting to
