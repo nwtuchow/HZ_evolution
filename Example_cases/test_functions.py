@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 17 15:35:31 2023
 test functions
-@author: ntuchow
 """
 from isochrones.mist import MISTEvolutionTrackGrid
 import HZ_evolution.hz_utils as hz

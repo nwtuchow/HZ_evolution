@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Mar  4 15:29:06 2024
-
-@author: ntuchow
-"""
+'''
+Example application of the HZ_evolution tool to a sun-like star
+'''
 
 from isochrones.mist import MISTEvolutionTrackGrid
 import HZ_evolution as hz

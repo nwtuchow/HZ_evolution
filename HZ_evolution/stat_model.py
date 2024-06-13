@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec  8 17:11:46 2020
-statistical model
-@author: nxt5109
+statistical model for isochrone fitting
 """
 
 
@@ -14,6 +12,7 @@ from scipy.stats import uniform
 
 LOG_ONE_OVER_ROOT_2PI = np.log(1.0 / np.sqrt(2 * np.pi))
 
+#default prior for stellar parameters
 #note that priors may have different attributes
 prior_arr0=[priors.ChabrierPrior(),
            uniform(loc=150,scale=600),

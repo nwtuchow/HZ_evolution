@@ -4,8 +4,6 @@
 Example usage of the HZ_evolution code for the Kepler 62 system
 """
 
-
-
 import sys
 import os
 os.environ["OMP_NUM_THREADS"] = "1" #prevent numpy from using multiple cores

@@ -10,3 +10,4 @@ __pycache__/
 /HZ_evolution/outputs/*.csv
 /HZ_evolution/outputs/*.pkl
 
+Notebooks/.ipynb_checkpoints/Kepler62f_example-checkpoint.ipynb
