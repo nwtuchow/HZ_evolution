@@ -33,7 +33,7 @@ track=track_df.xs((test_feh,test_mass),level=(0,1))
 #habitable zone evolution object using Kopparapu et al 2013 habitable zone
 evol1= hz.HZ_evolution_MIST(track, test_eep,HZ_form="K13_optimistic")
 evol1.get_fixed_age_CHZ(fixed_age=2e9)
-evol1.get_sustained_CHZ(CHZ_start_age=1e7)
+evol1.get_sustained_CHZ(CHZ_start_age=5e7)
 
 
 planet1= hz.HZ_planet(evol1.age, evol1.L, evol1.Teff,

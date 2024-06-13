@@ -4,11 +4,11 @@
 test functions
 """
 from isochrones.mist import MISTEvolutionTrackGrid
-import HZ_evolution.hz_utils as hz
+import HZ_evolution as hz
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
+#from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 
 
 
@@ -118,10 +118,10 @@ eep_max=400
 Seff_min=0.1
 Seff_max=2.1
 
-func_3d=construct_interpolator_3D(mass_min= mass_min,mass_max= mass_max, eep_min=eep_min,
+func_3d=hz.construct_interpolator_3D(mass_min= mass_min,mass_max= mass_max, eep_min=eep_min,
                           eep_max=eep_max, Seff_min=0.1,Seff_max=2.1)
 
-func_4d=construct_interpolator_4D(feh_min=feh_min,feh_max=feh_max,mass_min= mass_min,mass_max= mass_max,
+func_4d=hz.construct_interpolator_4D(feh_min=feh_min,feh_max=feh_max,mass_min= mass_min,mass_max= mass_max,
                            eep_min=eep_min,eep_max=eep_max,Seff_min=0.1,Seff_max=2.1)
 
 input_arr1=[test_mass*np.ones_like(test_Seff),test_eep*np.ones_like(test_Seff),test_Seff]
