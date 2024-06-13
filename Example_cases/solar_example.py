@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Mar  4 15:29:06 2024
-
-@author: ntuchow
-"""
+'''
+Example application of the HZ_evolution tool to a sun-like star
+'''
 
 from isochrones.mist import MISTEvolutionTrackGrid
-import utils.hz_utils as hz
+import HZ_evolution as hz
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
+#from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 
 
 

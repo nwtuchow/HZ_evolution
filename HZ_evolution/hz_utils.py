@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Calculates habitable zones and HZ evolution
+Utilities to calculate habitable zones and HZ evolution
 """
 
 import numpy as np
@@ -11,7 +11,10 @@ import astropy.constants as cons
 import astropy.units as u
 from isochrones.mist import MIST_EvolutionTrack
 import pandas as pd
+import os
 
+ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+OUTPUT_DIR= ROOT_DIR+'/outputs/'
 
 #Constants for HZ polynomials
 #Seff_sun, a,b,c,d
@@ -97,10 +100,6 @@ def P_to_Seff(Period,Mtot,L):
     return Seff
     
 
-
-
-#age has been tested in units of yrs, but other units should work as long 
-#as all age related quantities use the same units
 class HZ_evolution:
     """This class defines an object for HZ evolution. Given information about
     a star's evolutionary track, this object can calculate derived properties,
@@ -203,13 +202,8 @@ class HZ_evolution:
         initial_o = f_o(CHZ_start_age).item()
     
         ro_min=np.nanmin(self.r_outer[CHZ_start_ind:])
-        #ind_ro_min=np.where(r_outer==ro_min)[0]
-        #age_ro_min=age[ind_ro_min]
 
         ri_max=np.nanmax(self.r_inner[CHZ_start_ind:])
-        #ind_ri_max=np.where(r_inner==ri_max)[0]
-        #age_ri_max=age[ind_ri_max]
-
 
         if ro_min <initial_i or ri_max > initial_o or ri_max>ro_min:
             self.sCHZ_i= -1
@@ -220,7 +214,6 @@ class HZ_evolution:
         return
     
     
-    #should add condition so stays within HZ temp boundaries
     def get_fixed_age_CHZ(self,fixed_age=2.0e9,nd=1000):
         """
         Calculate fixed duration CHZ, also called fixed age CHZ. This is the more 
@@ -247,11 +240,11 @@ class HZ_evolution:
         down_arr=np.array([]) # boundaries for when goes from CHZ to non CHZ
         #need to do this because in strange cases can have a split CHZ
         
-        #needs to be in bounds of temp range of HZ on main sequence
+        #needs to be in bounds of temp range of HZ
         if self.Teff.max()> self.Tmax or self.Teff.min()<self.Tmin:
             self.fCHZ_i= np.nan
             self.fCHZ_o= np.nan
-            return #self.fCHZ_i, self.fCHZ_o 
+            return 
     
         cond_arr= (tau >= fixed_age)
         for i in range(1,nd):
@@ -276,10 +269,9 @@ class HZ_evolution:
             self.fCHZ_i= up_arr
             self.fCHZ_o= down_arr
     
-        return #self.fCHZ_i, self.fCHZ_o    
+        return     
     
     #needs to be tested
-    #no longer uses EEP because general stellar evolution objects don't necessarily have
     #may cause crashes on premain sequence and postmain sequence
     def obj_calc_B(self,**kwargs):
         """
@@ -360,11 +352,7 @@ class HZ_evolution:
                               self.r_outer,only_CHZ=only_CHZ)
         elif mode=="coarse":
             obj_tau=calc_tau_coarse(dist, self.age, self.r_inner,self.r_outer,only_CHZ=only_CHZ)
-            #if self.age[-1] <= t_0: #set habitable duration to zero if before start age
-            #    obj_tau= 0.0
-            #else:
-            #    start_ind= np.where(self.age>t_0)[0][0]
-            #    obj_tau=calc_tau_coarse(dist, self.age[start_ind:], self.r_inner[start_ind:],self.r_outer[start_ind:],only_CHZ=only_CHZ)
+            
         else:
             print("Invalid mode")
             
@@ -469,12 +457,9 @@ class HZ_evolution:
         
         return t_ext
     
-    
-    
-    #calculate fraction of HZ occupied by CHZ
     def CHZ_dist_fraction(self,form="sustained"):
         '''calculate fraction of HZ occupied by CHZ
-        form: formulation of the HZ, "sustained" for the Tuchow and Wright 2023 formulation of the sustained CHZ,
+        form: formulation of the CHZ, "sustained" for the Tuchow and Wright 2023 formulation of the sustained CHZ,
             'fixed age' for the fixed age CHZ, planets that spend longer that a given duration in the HZ
         '''
         
@@ -528,11 +513,10 @@ class HZ_evolution:
         self.f_d = (C_o-C_i) / (self.current_o - self.current_i)
         return self.f_d
     
-    #calculate fraction of HZ planets in CHZ assuming power law distribution of planets
     def CHZ_planet_fraction(self, beta=-1, form="sustained"):
         '''calculate fraction of HZ planets in CHZ assuming power law distribution of planets
         beta: powerlaw exponent
-        form: form: formulation of the HZ, "sustained" for the Tuchow and Wright 2023 formulation of the sustained CHZ,
+        form: form: formulation of the CHZ, "sustained" for the Tuchow and Wright 2023 formulation of the sustained CHZ,
             'fixed age' for the fixed age CHZ, planets that spend longer that a given duration in the HZ'''
         if len(self.age)<=1:
             self.f_p=0
@@ -631,7 +615,37 @@ class HZ_evolution:
 
 
 class HZ_planet(HZ_evolution):
-#Period in days
+    """Subclass of HZ_evolution describing the history of a specified planet. 
+    Given the position of a planet and its star's evolution, this object computes 
+    the instellation history and durations spent in the habitable zone,
+    as well as the time spent interior to the habitable zone and time spent exterior to it.
+    
+    Parameters:
+    -----------
+    age: array
+        array of stellar age in yrs
+    L: array
+        array of Luminosity in Lsun
+    Teff: array 
+        array of stellar effective temperature in Kelvin
+    Dist: float
+        planet star separation in AU (optional, can provide planet's period and stellar mass instead)
+    Period: float
+        planet's orbital period in days (optional can provide distance instead)
+    Mstar: float
+        mass of host star in M_sun (only used in Keplers 3rd law to get dist when Period is provided)
+    HZ_form: str, optional
+        Formulation for the habitable zone. Currently choose between 
+        Kopparapu 2013 moist greenhouse and max greenhouse ("K13"), Kopparapu 
+        2013 recent Venus and Early Mars ("K13_optimistic"), Ramirez 2018 ("R18"),
+        or define your own HZ formulation selection the "custom" option
+    custom_inner_HZ_func: function, optional 
+        Custom function for inner HZ boundary in terms of distance,
+        taking arguments of L and Teff. Only used when HZ_form="custom"
+    custom_outer_HZ_func: function, optional
+        Custom function for outer HZ boundary, taking 
+        arguments of L and Teff. Only used when HZ_form="custom"
+    """
     def __init__(self, age,L,Teff,Dist=None, Period=None,Mstar=None,
                  HZ_form="K13",
                  custom_inner_HZ_func=None,
@@ -653,19 +667,50 @@ class HZ_planet(HZ_evolution):
         self.current_age= self.age[-1]
     
     def get_tau(self, **kwargs):
+        '''
+        Calculate the duration the planet spends in the habitable zone.
+        Takes the same keyword arguments as obj_calc_tau in parent class
+        '''
         self.tau=self.obj_calc_tau(self.Dist,**kwargs)[0]
         return self.tau
         
     def get_t_int(self, **kwargs):
+        '''
+        Calculate the duration the planet spent interior to the habitable zone.
+        Takes same kwargs as obj_calc_t_interior in parent class.
+        '''
         self.t_int=self.obj_calc_t_interior(self.Dist,**kwargs)[0]
         return self.t_int
         
     def get_t_ext(self, **kwargs):
+        '''
+        Calculate the duration the planet spent exterior to the habitable zone.
+        Takes same kwargs as obj_calc_t_exterior in parent class.
+        '''
         self.t_ext=self.obj_calc_t_exterior(self.Dist,**kwargs)[0]
         return self.t_ext
 
-#turn MIST evolutionary track (slice of dataframe) into HZ evolution object
+
 def HZ_evolution_MIST(track,eep,**kwargs):
+    '''shortcut to turn a MIST evolutionary track (slice of dataframe) into an 
+    HZ evolution object
+    
+
+    Parameters
+    ----------
+    track : pandas dataframe
+        MIST evolutionary track (slice of model grid).
+    eep : int
+        Equivalent evolutionary phase, used as a proxy for age in model grid
+    **kwargs : 
+        keyword arguments for initializing HZ_evolution object
+
+    Returns
+    -------
+    HZ_evolution
+        HZ_evolution object for specified track
+
+    '''
     if eep==0:
         L=[np.nan]
         Teff=[np.nan]
@@ -678,6 +723,31 @@ def HZ_evolution_MIST(track,eep,**kwargs):
     return HZ_evolution(age, L, Teff,**kwargs)
 
 def generate_interpolated_evol_track(pars,track_cols=['age','logL','Teff'],n_eep=400,eep_start=1,mist_track=MIST_EvolutionTrack()):
+    '''
+    Function to obtain a sythetic evolutionary track of a star 
+    via interpolation of MIST models between grid points
+
+    Parameters
+    ----------
+    pars : np.array
+        Array of stellar fundamental properties ( mass(M_sun), EEP, [Fe/H] )
+    track_cols : list of str, optional
+        List of stellar properties to include in the interpolated track. 
+        Must be MIST column names.
+        The default is ['age','logL','Teff'].
+    n_eep : int, optional
+        Number of EEP points between the start date and the current evolutionary phase. 
+        The default is 400.
+    eep_start : int, optional
+        Starting evolutionary phase for track. The default is 1.
+    mist_track : isochrones.mist.MIST_EvolutionTrack, optional
+        Mist evolutionary track object. Optional, but can specify it to reduce initialization time
+
+    Returns
+    -------
+    trackdf : pandas dataframe
+        dataframe for the star's evolutionary track
+    '''
     eep_arr=np.linspace(eep_start,pars[1],n_eep)
     pts= np.empty((3,n_eep))
 
@@ -694,12 +764,14 @@ def generate_interpolated_evol_track(pars,track_cols=['age','logL','Teff'],n_eep
     return trackdf
 
 
-#calculate the habitable duration of a planet at separation 'd' for star of age 'age'
-#r_inner and r_outer are arrays of HZ boundaries in time in AU
-#age array gives times for each entry in r_inner and r_outer
-#should be same units as t_0: time for onset of habitability
-#t_0 is obsolete
 def calc_tau(d, age, r_inner,r_outer, only_CHZ=False):
+    '''calculates the habitable duration of a planet at separation 'd' for star of age 'age'
+    r_inner and r_outer are arrays of HZ boundaries in time in AU
+    age array gives times for each entry in r_inner and r_outer
+    tau will be in same units as age
+    It is recommended to use the obj_calc_tau function in the HZ_evolution object
+        rather than calling this function by itself
+    '''
     
     if only_CHZ==False:
         ri_func=interpolate.interp1d(age,r_inner)
@@ -746,17 +818,16 @@ def calc_tau(d, age, r_inner,r_outer, only_CHZ=False):
             else:
                 t_life[k] =0.0
             
-    #t_life=t_life -t_0
     t_life[t_life<0.0]=0.0
             
     return t_life
 
-#faster and more flexible version of tau: duration spent in HZ
-#currently more coarse than calc_tau, doesn't use interpolation, optimization too expensive
-#t_0 is obsolete don't use
-#age, r_inner, and r_outer arrays should begin when habitability is considered to start
+
 def calc_tau_coarse(d, age, r_inner,r_outer,only_CHZ=False):
-    
+    '''
+    #faster and more flexible version of calc_tau
+    #currently more coarse than calc_tau, doesn't use interpolation, or optimization to save computation time
+    '''
     ri_min=min(r_inner)
     ro_max=max(r_outer)
     ri_max= max(r_inner) #CHZ inner for t1=0
@@ -783,30 +854,27 @@ def calc_tau_coarse(d, age, r_inner,r_outer,only_CHZ=False):
             if d[k]>= ri_min and d[k]<= ri_max:
                 locs=np.argwhere(np.diff(np.sign(r_inner-d[k]))).flatten()
                 inner_age= age[locs[-1]]
-                #inner_age= float(ri_age(d[k]))
             if d[k]>= ro_min and d[k]<=ro_max:
                 locs=np.argwhere(np.diff(np.sign(r_outer-d[k]))).flatten()
                 outer_age = age[locs[-1]]
-                #outer_age= float(ro_age(d[k]))
             
             if inner_age!=-1 or outer_age!=-1:
                 t_life[k]= age[-1]-max(inner_age,outer_age)
             else:
                 t_life[k] =0.0
             
-    #t_life=t_life -t_0
     t_life[t_life<0.0]=0.0
             
     return t_life
 
-#calculate time spent interior to the habitable zone
 def calc_t_interior(d, age, r_inner,r_outer):
-    #current_age= age[-1]
+    '''calculate time spent interior to the habitable zone
+    use obj_calc_t_interior in HZ_evolution class instead of calling this function by itself
+
+    '''
     
     ri_min=min(r_inner)
-    #ro_max=max(r_outer)
     ri_max= max(r_inner) 
-    #ro_min= min(r_outer)
     
     ri_func= interpolate.interp1d(age,r_inner)
     
@@ -815,8 +883,6 @@ def calc_t_interior(d, age, r_inner,r_outer):
         
     nd=len(d)
     t_interior=np.zeros_like(d)
-    
-    #t_interior=current_age - self.tau
     
     for q in range(nd):
         if d[q] < r_inner[-1] or d[q] > r_outer[-1]: # set to zero outside HZ
@@ -830,20 +896,17 @@ def calc_t_interior(d, age, r_inner,r_outer):
             
             inner_age=optimize.root(opt_func,inner_age0)
             t_interior[q]= inner_age.x[0]
-            #trouble area what to do here?
         elif d[q]<=ri_min:
             t_interior[q]=0
     
     return t_interior
 
-#faster but less precise version of calc_t_interior
+
 def calc_t_interior_coarse(d, age, r_inner,r_outer):
-    #current_age= age[-1]
+    '''faster but less precise version of calc_t_interior'''
     
     ri_min=min(r_inner)
-    #ro_max=max(r_outer)
     ri_max= max(r_inner) 
-    #ro_min= min(r_outer)
     
     if not (isinstance(d,np.ndarray) or isinstance(d,list)):
         d= np.array([d])
@@ -861,18 +924,15 @@ def calc_t_interior_coarse(d, age, r_inner,r_outer):
             locs=np.argwhere(np.diff(np.sign(r_inner-d[q]))).flatten()
             inner_age= age[locs[-1]]
             t_interior[q]= inner_age
-            #trouble area what to do here?
         elif d[q]<=ri_min:
             t_interior[q]=0
     
     return t_interior
 
 def calc_t_exterior(d, age, r_inner,r_outer):
-    #current_age= age[-1]
-    
-    #ri_min=min(r_inner)
-    ro_max=max(r_outer)
-    #ri_max= max(r_inner) 
+    '''function to calculate time spent exterior to the HZ
+    use obj_calc_t_exterior in the HZ_evolution object instead of calling this function directly'''    
+    ro_max=max(r_outer) 
     ro_min= min(r_outer)
     
     ro_func= interpolate.interp1d(age,r_outer)
@@ -882,8 +942,6 @@ def calc_t_exterior(d, age, r_inner,r_outer):
         
     nd=len(d)
     t_ext=np.zeros_like(d)
-    
-    #t_interior=current_age - self.tau
     
     for q in range(nd):
         if d[q] < r_inner[-1] or d[q] > r_outer[-1]: # set to zero outside HZ
@@ -897,21 +955,15 @@ def calc_t_exterior(d, age, r_inner,r_outer):
             
             outer_age=optimize.root(opt_func,outer_age0)
             t_ext[q]= outer_age.x[0]
-            #trouble area what to do here?
         elif d[q]<=ro_min:
             t_ext[q]=0
     
     return t_ext
 
 def calc_t_exterior_coarse(d, age, r_inner,r_outer):
-    #current_age= age[-1]
-    
-    #ri_min=min(r_inner)
+    '''faster but less precision version of calc_t_exterior'''
     ro_max=max(r_outer)
-    #ri_max= max(r_inner) 
     ro_min= min(r_outer)
-    
-    #ro_func= interpolate.interp1d(age,r_outer)
     
     if not (isinstance(d,np.ndarray) or isinstance(d,list)):
         d= np.array([d])
@@ -932,23 +984,7 @@ def calc_t_exterior_coarse(d, age, r_inner,r_outer):
         elif d[q]<=ro_min:
             t_ext[q]=0
     
-    return t_ext
-
-
-'''def planet_class(dist,age,r_inner, r_outer,start_age=1e7):
-    
-    if age[-1]< start_age:
-        pclass = 'undefined'
-        return pclass
-    start_ind=np.where(age>start_age)[0][0]
-    
-    ri_min= min(r_inner)
-    ri_max= max(r_outer)
-    ro_min=min(r_outer)
-'''    
-    
-    
-    
+    return t_ext    
 
 
 #H for instantaneous HZ
@@ -1101,7 +1137,7 @@ def calc_B_MIST(current_eep,track,**kwargs):
         return B
 
 def calc_B_general(current_eep,track,**kwargs):
-    '''general version of calc B for kiauhoku model grids'''
+    '''general version of calc B for other model grids'''
     ZAMS_eep=202
     RGB_eep=605 #tip of red giant branch
     #eeps= track.index

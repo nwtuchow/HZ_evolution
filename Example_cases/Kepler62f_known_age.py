@@ -16,13 +16,13 @@ os.environ["OMP_NUM_THREADS"] = "1" #prevent numpy from using multiple cores
 import pandas as pd
 import emcee
 import numpy as np
-from utils.stat_model import log_posterior, sample_prior,model_output
+from HZ_evolution.stat_model import log_posterior, sample_prior,model_output
 from isochrones.mist import MIST_EvolutionTrack
 from isochrones.interp import DFInterpolator
 import scipy.stats as st
 #from multiprocessing import Pool, cpu_count
-import utils.hz_utils as hz
-from tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
+import HZ_evolution.hz_utils as hz
+from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 import matplotlib.pyplot as plt
 import isochrones.priors as priors
 import multiprocessing as mp

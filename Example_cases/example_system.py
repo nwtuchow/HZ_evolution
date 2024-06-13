@@ -16,15 +16,16 @@ os.environ["OMP_NUM_THREADS"] = "1" #prevent numpy from using multiple cores
 import pandas as pd
 import emcee
 import numpy as np
-from utils.stat_model import log_posterior, sample_prior,model_output
+from HZ_evolution.stat_model import log_posterior, sample_prior,model_output
 from isochrones.mist import MIST_EvolutionTrack
 from isochrones.interp import DFInterpolator
 import scipy.stats as st
 from multiprocessing import Pool, cpu_count
-import utils.hz_utils as hz
-from tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
+import HZ_evolution.hz_utils as hz
+from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 import matplotlib.pyplot as plt
 import isochrones.priors as priors
+from HZ_evolution import OUTPUT_DIR
 
 #%%
 #make new log likehood log posterior that doesn't have AV dist as parameters
@@ -115,10 +116,10 @@ import corner
 corner_fig = corner.corner(flat_samples,labels=labels,quantiles=[0.16, 0.5, 0.84],show_titles=True)
 
 #%%
-np.savetxt('outputs/example_sys_mcmc_chain.txt', flat_samples)
+np.savetxt(OUTPUT_DIR+'example_sys_mcmc_chain.txt', flat_samples)
 
 #%%
-flat_samples=np.loadtxt('outputs/example_sys_mcmc_chain.txt')
+flat_samples=np.loadtxt(OUTPUT_DIR+'example_sys_mcmc_chain.txt')
 
 #%% construct tau interpolator
 mass_min=flat_samples[:,0].min()

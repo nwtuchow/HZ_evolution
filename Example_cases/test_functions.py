@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 17 15:35:31 2023
 test functions
-@author: ntuchow
 """
 from isochrones.mist import MISTEvolutionTrackGrid
-import utils.hz_utils as hz
+import HZ_evolution.hz_utils as hz
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from tau_interpolation import construct_interpolator_4D, construct_interpolator_3D
+from HZ_evolution.interp_utils import construct_interpolator_4D, construct_interpolator_3D
 
 
 
