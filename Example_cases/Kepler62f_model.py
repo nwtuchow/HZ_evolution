@@ -30,7 +30,7 @@ star_feh= -0.34 #fulton and petigura 2018
 star_dfeh=0.04
 star_logL= -0.5909 #borucki+ 2018
 star_dlogL= 0.0077
-star_mass=0.764
+star_mass=0.764 #borucki+ 2018
 star_dmass=0.011
 target_dict={'Teff':(star_Teff,star_dTeff),
              'logg':(star_logg,star_dlogg*4),

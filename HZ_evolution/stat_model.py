@@ -23,17 +23,10 @@ def log_gauss(p,dp,model_p):
     diff=p - model_p
     return LOG_ONE_OVER_ROOT_2PI+np.log(dp) -0.5*diff*diff/(dp*dp)
 
-'''#use scipy version instead
-def uniform_dist(x,bounds=(0,1)):
-    diff =bounds[1]-bounds[0]
-    f=0
-    if x>=bounds[0] and x<=bounds[1]:
-        f=1./diff
-    return f
-'''
 
- #pars=[mass,eep,feh]   
-#prop names are properties we age fitting to
+#obtain model output from MIST
+#input parameters: pars=[mass,eep,feh]   
+#prop names are properties we are fitting to
 def model_output(pars,prop_names=['Teff','logg','feh','logL'],mist_track=None):
     if mist_track==None:
         mist_track=MIST_EvolutionTrack()
@@ -57,7 +50,6 @@ def L_to_Mbol(lum,MbolSun=4.74):
 
 
 #pars=[mass,eep,feh]
-
 #takes target_dict of 'key' : (value, uncertainty)
 #should add failsafes for nans
 def log_likelihood(pars,target_dict,prop_names,mist_track):
@@ -111,7 +103,6 @@ def sample_prior(nwalkers,ndim,prior_arr,special_ind=[0]):
 #pars=[mass,eep,feh,distance,A_v]
 #parallax in mas
 #takes target_dict of 'key' : (value, uncertainty)
-
 def fitting_func(pars,target_dict,band_names,prop_names,mist_track,
                  scale):
     if scale==None:
