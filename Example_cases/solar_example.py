@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 '''
-Example application of the HZ_evolution tool to a sun-like star
+Example application of the HZ_evolution tool for a sun-like star
 '''
 
 from isochrones.mist import MISTEvolutionTrackGrid

@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Utilities to create an interpolator for habitable durations.
 Includes 3D and 4D versions of the interpolator with and without Fe/H as a dimension
@@ -11,12 +9,12 @@ import pandas as pd
 from isochrones.interp import DFInterpolator
 import os
 from .hz_utils import ROOT_DIR, OUTPUT_DIR
+from .calculate_grid_values import calculate_grid_3D
+from .calculate_grid_values_4D import calculate_grid_4D
 
-def calculate_grid():
-    '''calculates habitable durations for the grid of MIST models at solar metallicity
-    run this function before calling construct_interpolator_3D
-    time consuming and memory intensive, benmarked at 824s'''
-    import calculate_grid_values
+#def calculate_grid_3D():
+#    
+#    import calculate_grid_values
     
 def calculate_grid_4D():
     '''calculates habitable durations for the grid of MIST models, including metallicity as a dimension

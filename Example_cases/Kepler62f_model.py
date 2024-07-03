@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Example usage of the HZ_evolution code for the Kepler 62 system
 """
