@@ -12,17 +12,23 @@ from .hz_utils import ROOT_DIR, OUTPUT_DIR
 from .calculate_grid_values import calculate_grid_3D
 from .calculate_grid_values_4D import calculate_grid_4D
 
-#def calculate_grid_3D():
-#    
-#    import calculate_grid_values
+
+'''
+IMPORTANT:
+
+Before using these interpolator functions, you need to to generate the model grid
+to interpolate over. You can do this using the calculate_grid_3D and calculate_grid_4D 
+functions.
+
+To calculate a model grid with dimensions (FeH, mass, EEP, Seff) run
+    calculate_grid_4D()
     
-def calculate_grid_4D():
-    '''calculates habitable durations for the grid of MIST models, including metallicity as a dimension
-    run this function before calling construct_interpolator_4d
-    time consuming and memory intensive, benchmarked at 5054s'''
-    import calculate_grid_values_4D
-
-
+To calculate a model grid at a fixed metalicity value with dimensions (mass, eep, Seff)
+run
+    calculate_grid_3D()
+    
+see the doc strings for each function for optional keyword arguements
+'''
 
 def construct_interpolator_3D(mass_min= 0.1,mass_max= 2.0, eep_min=6,eep_max=605,
                               Seff_min=0.1,Seff_max=2.1,
