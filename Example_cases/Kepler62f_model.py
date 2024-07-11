@@ -48,8 +48,8 @@ mist_track = MIST_EvolutionTrack()
 prop_names=['Teff', 'logg', 'feh', 'logL','mass']
 
 
-global posterior_args
-posterior_args=[target_dict,prop_names, mist_track, prior_arr,[]]
+#global posterior_args
+#posterior_args=[target_dict,prop_names, mist_track, prior_arr,[]]
 
 def ln_post_global(pars):
     ln_post =hz.log_posterior(pars, target_dict, prop_names, 
