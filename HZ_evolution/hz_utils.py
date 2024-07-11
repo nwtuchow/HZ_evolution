@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Utilities to calculate habitable zones and HZ evolution
 """

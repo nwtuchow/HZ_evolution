@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Example usage of the HZ_evolution code for the Kepler 62 system
 """
@@ -30,7 +28,7 @@ star_feh= -0.34 #fulton and petigura 2018
 star_dfeh=0.04
 star_logL= -0.5909 #borucki+ 2018
 star_dlogL= 0.0077
-star_mass=0.764
+star_mass=0.764 #borucki+ 2018
 star_dmass=0.011
 target_dict={'Teff':(star_Teff,star_dTeff),
              'logg':(star_logg,star_dlogg*4),
@@ -50,8 +48,8 @@ mist_track = MIST_EvolutionTrack()
 prop_names=['Teff', 'logg', 'feh', 'logL','mass']
 
 
-global posterior_args
-posterior_args=[target_dict,prop_names, mist_track, prior_arr,[]]
+#global posterior_args
+#posterior_args=[target_dict,prop_names, mist_track, prior_arr,[]]
 
 def ln_post_global(pars):
     ln_post =hz.log_posterior(pars, target_dict, prop_names, 
@@ -279,7 +277,7 @@ S_ax.axhline(y=0,color='green',ls='--')
 #S_ax.invert_xaxis()
 S_ax.set_xlabel("Time (yr)")
 S_ax.set_ylabel("HZ position")
-S_ax.set_xlim([1e6,1e10])
+S_ax.set_xlim([1e5,1e10])
 S_ax.set_ylim([-0.1,1.2])
 S_ax.set_xscale('log')
 #S_ax.set_yscale('log')
@@ -289,14 +287,14 @@ hz_fig, hz_ax= plt.subplots()
 
 for k in range(ntracks):
     planet_obj=planet_arr[k]
-    hz_ax.plot(planet_obj.age,planet_obj.r_inner,color='gray',alpha=0.1)
-    hz_ax.plot(planet_obj.age,planet_obj.r_outer,color='gray',alpha=0.1)
-    hz_ax.axhline(y=planet_obj.Dist,color='gray',alpha=0.05)
+    hz_ax.plot(planet_obj.age,planet_obj.r_inner,color='gray',alpha=0.25)
+    hz_ax.plot(planet_obj.age,planet_obj.r_outer,color='gray',alpha=0.25)
+    #hz_ax.axhline(y=planet_obj.Dist,color='gray',alpha=0.05)
 
-hz_ax.plot(best_planet_obj.age,best_planet_obj.r_inner,ls='-',color='black')
-hz_ax.plot(best_planet_obj.age,best_planet_obj.r_outer,ls='-',color='black')
+hz_ax.plot(best_planet_obj.age,best_planet_obj.r_inner,ls='-',color='green')
+hz_ax.plot(best_planet_obj.age,best_planet_obj.r_outer,ls='-',color='green')
 
-hz_ax.axhline(y=best_planet_obj.Dist,ls='--',color='blue')
+hz_ax.axhline(y=best_planet_obj.Dist,ls='--',color='black')
 hz_ax.set_xlim([1e5,1e10])
 hz_ax.set_xscale("log")
 hz_ax.set_xlabel("age (yr)")
