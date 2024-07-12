@@ -9,7 +9,7 @@ If you find this package useful please cite __________
 
 Authors: Noah Tuchow and Jason Wright
 
-##Installation
+## Installation
 
 To install this package clone the github repository to your location of choice:
 
