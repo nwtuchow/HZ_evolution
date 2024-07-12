@@ -1,4 +1,4 @@
-# HZ_Evolution
+# HZ_evolution
 
 A package to calculate the habitable histories of exoplanets. 
 
