@@ -23,7 +23,7 @@ then navigate to the location of `setup.py` and run:
 pip install . 
 ```
 
-##Dependencies
+## Dependencies
 
 In order to use the `HZ_evolution` package one requires a user supplied stellar model. By default it includes utilities to use the MIST (MESA Isochrones and Stellar Tracks) model grid via `isochrones.py`, but any stellar model can be used.
 
@@ -44,7 +44,7 @@ These packages should all be available via pip
 
 **Note**: We recommend testing the `isochrones` python package to make sure it is working prior to running `HZ_evolution`. The first time one runs `isochrones` it may need to cache a stellar model grid, so it might take a little while.
 
-##Getting Started
+## Getting Started
 
 For beginners we recommend starting with the examples in the notebooks/ directory. Start first with `Intro_to_HZ_evolution.ipynb`.
 
