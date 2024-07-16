@@ -10,6 +10,9 @@ setup(
           'numpy',
           'matplotlib',
           'pandas',
+          'numba',
+          'nose',
+          'pytables'
           'astropy',
           'scipy',
           'emcee',

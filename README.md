@@ -23,6 +23,10 @@ then navigate to the location of `setup.py` and run:
 pip install . 
 ```
 
+**Note**:  Before using this package, we recommend that users make sure that they have the `isochrones` python package installed. While `isochrones` is a dependency of this package we found that many of the problems with installations come from problems getting the isochrones package working. We recommend following their [installation instructions](https://isochrones.readthedocs.io/en/latest/install.html) and following their [quickstart guide](https://isochrones.readthedocs.io/en/latest/quickstart.html) up until the section on model fitting. The `holoviews` and `Multinest` packages are not used by `HZ_evolution`, so it is the user's choice if they want to install them. Don't worry about running the nosetests recommended by the isochrones package. Some may fail, but this package will still work.
+
+The first time one runs `isochrones` it will take a while as it needs to download and cache the MIST stellar model grid.
+
 ## Dependencies
 
 In order to use the `HZ_evolution` package one requires a user supplied stellar model. By default it includes utilities to use the MIST (MESA Isochrones and Stellar Tracks) model grid via `isochrones.py`, but any stellar model can be used.
@@ -34,6 +38,9 @@ It also requires the user to specify a formulation for the habitable zone. Many 
 - numpy,
 - matplotlib
 - pandas
+- numba
+- nose
+- pytables
 - astropy
 - scipy 
 - emcee
@@ -42,7 +49,7 @@ It also requires the user to specify a formulation for the habitable zone. Many 
 
 These packages should all be available via pip
 
-**Note**: We recommend testing the `isochrones` python package to make sure it is working prior to running `HZ_evolution`. The first time one runs `isochrones` it may need to cache a stellar model grid, so it might take a little while.
+
 
 ## Getting Started
 

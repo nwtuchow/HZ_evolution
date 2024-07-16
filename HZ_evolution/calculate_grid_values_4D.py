@@ -40,7 +40,13 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv", max_mass=2.0,max_EEP
     #import MIST evolutionary track grid and get multi-index
     track_grid = MISTEvolutionTrackGrid()
     df=track_grid.df
+    
+    index_names= df.index.names
+    req_names=['initial_feh','initial_mass','EEP']
+    if index_names!=req_names:
+        df.index.names=req_names
 
+    
     if verbose:
         print("Beginning construction of 4D habitable duration grid.")
     
@@ -48,7 +54,6 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv", max_mass=2.0,max_EEP
 
     df= df.query(query_str)
 
-    index_names= df.index.names
     fehs= df.index.levels[0].values
     fehs= fehs[4:]
     masses= df.index.levels[1].values

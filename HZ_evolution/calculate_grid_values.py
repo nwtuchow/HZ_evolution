@@ -45,6 +45,12 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,max_mass=2.0,max_EEP=60
     track_grid = MISTEvolutionTrackGrid()
     df=track_grid.df
 
+    index_names= df.index.names
+    req_names=['initial_feh','initial_mass','EEP']
+    if index_names!=req_names:
+        df.index.names=req_names
+        
+        
     if verbose:
         print("Beginning construction of 3D habitable duration grid. [Fe/H] fixed at %.3f" % fixed_feh)
     
@@ -52,7 +58,6 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,max_mass=2.0,max_EEP=60
 
     df= df.query(query_str)
 
-    index_names= df.index.names
     fehs= df.index.levels[0].values
     
     if not (fixed_feh in fehs):
