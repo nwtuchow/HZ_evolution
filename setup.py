@@ -12,7 +12,6 @@ setup(
           'pandas',
           'numba',
           'nose',
-          'pytables',
           'astropy',
           'scipy',
           'emcee',
