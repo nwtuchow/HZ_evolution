@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import time
 
-def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv", max_mass=2.0,max_EEP=605,
+def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",max_mass=2.0,max_EEP=605,
                       min_EEP=5,HZ_form="K13_optimistic",verbose=True):
     '''
     calculates habitable durations for the grid of MIST models, including metallicity as a dimension
