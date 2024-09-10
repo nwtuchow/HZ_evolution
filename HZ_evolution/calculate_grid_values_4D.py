@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import time
 
-def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",max_mass=2.0,max_EEP=605,
+def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",min_mass=0.0,max_mass=2.0,max_EEP=605,
                       min_EEP=5,HZ_form="K13_optimistic",verbose=True):
     '''
     calculates habitable durations for the grid of MIST models, including metallicity as a dimension
@@ -22,6 +22,8 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",max_mass=2.0,max_EEP=
         file name for output csv file. The default is "tau_df_K13_optimistic_4D.csv".
     max_mass : float, optional
         max mass for model grid. The default is 2.0.
+    min_mass : float, optional
+        minimum mass for model grid. The default is 0, i.e. a minimum isn't imposed
     max_EEP : int, optional
         Max EEP for model grid. The default is 605.
     min_EEP : int, optional
@@ -50,18 +52,18 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",max_mass=2.0,max_EEP=
     if verbose:
         print("Beginning construction of 4D habitable duration grid.")
     
-    query_str='(initial_mass<=%f) and (EEP < %d) and (EEP > %d)' % (max_mass,max_EEP,min_EEP)
+    query_str='(initial_mass<=%f) and (initial_mass>=%f) and (EEP < %d) and (EEP > %d)' % (max_mass,min_mass,max_EEP,min_EEP)
 
     df= df.query(query_str)
 
-    fehs= df.index.levels[0].values
+    fehs= df.index.get_level_values(0).drop_duplicates().values#df.index.levels[0].values
     fehs= fehs[4:]
-    masses= df.index.levels[1].values
-    mass_arr=masses[:80]
-    eeps= np.array(range(6,605))
+    masses= df.index.get_level_values(1).drop_duplicates().values  #df.index.levels[1].values
+    #mass_arr=     #masses[:80]
+    eeps= df.index.get_level_values(2).drop_duplicates().values# np.array(range(6,605))
     Seff_arr= np.linspace(0.1, 2.1,100)
 
-    new_ind= pd.MultiIndex.from_product([fehs,mass_arr,eeps,Seff_arr],names=('initial_Fe_H','initial_mass','EEP','S_eff'))
+    new_ind= pd.MultiIndex.from_product([fehs,masses,eeps,Seff_arr],names=('initial_Fe_H','initial_mass','EEP','S_eff'))
 
 
     tau_df= pd.DataFrame(index=new_ind)

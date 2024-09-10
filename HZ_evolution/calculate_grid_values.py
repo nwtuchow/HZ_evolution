@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import time
 
-def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,max_mass=2.0,max_EEP=605,
+def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2.0,max_EEP=605,
                       min_EEP=5,fixed_feh=0.0,HZ_form="K13_optimistic",verbose=True):
     '''
     calculates habitable durations for the grid of MIST models at specified metallicity
@@ -23,6 +23,8 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,max_mass=2.0,max_EEP=60
         file name for output csv file. The default is "tau_df_K13_optimistic.csv".
     max_mass : float, optional
         max mass for model grid. The default is 2.0.
+    min_mass : float, optional
+        minimum mass for model grid. The default is 0, i.e. a minimum isn't imposed
     max_EEP : int, optional
         Max EEP for model grid. The default is 605.
     min_EEP : int, optional
@@ -54,7 +56,7 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,max_mass=2.0,max_EEP=60
     if verbose:
         print("Beginning construction of 3D habitable duration grid. [Fe/H] fixed at %.3f" % fixed_feh)
     
-    query_str='(initial_mass<=%f) and (EEP < %d) and (EEP > %d) and (initial_feh==%f)' % (max_mass, max_EEP, min_EEP,fixed_feh)
+    query_str='(initial_mass<=%f) and (initial_mass>=%f) and (EEP < %d) and (EEP > %d) and (initial_feh==%f)' % (max_mass, min_mass, max_EEP, min_EEP,fixed_feh)
 
     df= df.query(query_str)
 
@@ -64,12 +66,11 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,max_mass=2.0,max_EEP=60
         print("Specified [Fe/H] value is not computed as a grid point in the isochrones grid.\nExiting...")
         return
     
-    masses= df.index.levels[1].values
-    mass_arr=masses[:80]
-    eeps= np.array(range(6,605))
+    masses= df.index.get_level_values(1).drop_duplicates().values
+    eeps= df.index.get_level_values(2).drop_duplicates().values#np.array(range(6,605))
     Seff_arr= np.linspace(0.1, 2.1,200)
 
-    new_ind= pd.MultiIndex.from_product([mass_arr,eeps,Seff_arr],names=('initial_mass','EEP','S_eff'))
+    new_ind= pd.MultiIndex.from_product([masses,eeps,Seff_arr],names=('initial_mass','EEP','S_eff'))
     
     tau_df= pd.DataFrame(index=new_ind)
     tau_df['tau']=np.nan
