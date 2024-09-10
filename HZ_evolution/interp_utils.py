@@ -32,7 +32,7 @@ see the doc strings for each function for optional keyword arguements
 
 def construct_interpolator_3D(mass_min= 0.1,mass_max= 2.0, eep_min=6,eep_max=605,
                               Seff_min=0.1,Seff_max=2.1,
-                              fname=OUTPUT_DIR+"tau_df_K13_optimistic.csv"):
+                              fname="tau_df_K13_optimistic.csv"):
     '''
     Creates a 3D interpolator for habitable duration, time interior to the HZ and 
     time exterior to the HZ  at [Fe/H]=0.
@@ -68,13 +68,15 @@ def construct_interpolator_3D(mass_min= 0.1,mass_max= 2.0, eep_min=6,eep_max=605
 
     '''
     
-    if not os.path.exists(fname):
+    full_fname=OUTPUT_DIR+ fname
+    
+    if not os.path.exists(full_fname):
         print("Error: File '%s' not found. If you haven't run calculate_grid, do so before using this function" % fname)
         return
     
     index_cols=['initial_mass','EEP','S_eff']
     all_cols=['initial_mass', 'EEP', 'S_eff', 'tau', 't_int','t_ext']
-    tau_chunks=pd.read_csv(fname, chunksize=10**4)
+    tau_chunks=pd.read_csv(full_fname, chunksize=10**4)
     tau_df= pd.DataFrame(columns=all_cols)
     for chunk in tau_chunks:
         temp_df=chunk.loc[(chunk['initial_mass']>=mass_min) & (chunk['initial_mass']<=mass_max) &
@@ -94,7 +96,7 @@ def construct_interpolator_3D(mass_min= 0.1,mass_max= 2.0, eep_min=6,eep_max=605
 
 def construct_interpolator_4D(feh_min=-2.0,feh_max=0.5,mass_min= 0.1,mass_max= 2.0,
                            eep_min=6,eep_max=605,Seff_min=0.1,Seff_max=2.1,
-                           fname=OUTPUT_DIR+"tau_df_K13_optimistic_4D.csv"):
+                           fname="tau_df_K13_optimistic_4D.csv"):
     '''
     Creates a 4D interpolator for habitable duration, time interior to the HZ and 
     time exterior to the HZ using the isochrones.py DFInterpolator object.
@@ -132,14 +134,16 @@ def construct_interpolator_4D(feh_min=-2.0,feh_max=0.5,mass_min= 0.1,mass_max= 2
         Interpolator for the grid of tau, t_int, and t_ext
 
     '''
-    if not os.path.exists(fname):
+    
+    full_fname= OUTPUT_DIR+ fname
+    if not os.path.exists(full_fname):
         print("Error: File '%s' not found. If you haven't run calculate_grid_4D do so before using this function" % fname)
         return
         
     
     index_cols=['initial_Fe_H','initial_mass','EEP','S_eff']
     all_cols=['initial_Fe_H', 'initial_mass', 'EEP', 'S_eff', 'tau', 't_int','t_ext']
-    tau_chunks=pd.read_csv(fname, chunksize=10**4)
+    tau_chunks=pd.read_csv(full_fname, chunksize=10**4)
     tau_df= pd.DataFrame(columns=all_cols)
     
     

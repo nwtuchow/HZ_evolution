@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
       name='HZ_evolution',
-      version='0.0.1',
+      version='1.0.0',
       author='Noah Tuchow',
       description="A package to calculate the habitable histories of exoplanets",
       install_requires=[
