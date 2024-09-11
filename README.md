@@ -2,14 +2,15 @@
 
 A package to calculate the habitable histories of exoplanets. 
 
+Authors: Noah Tuchow and Jason Wright
 
 This package aims to constrain the evolutionary histories of planets that we discover. As stars evolve in luminosity and effective temperature, the location of their habitable zones changes in time. This package includes utilities to assess how a planet's habitability will be influenced by its evolving host star. With the `HZ_evolution` package, one can calculate the instellation histories of planets, compute the durations that they spend in the habitable zone as well as the duration they spend interior and exterior to the habitable zone, and calculate the position of the continuously habitable zone among many other features.
 
 This package builds upon the previous work of [Tuchow and Wright (2020)](https://ui.adsabs.harvard.edu/abs/2020ApJ...905..108T/abstract), [Tuchow and Wright (2021)](https://ui.adsabs.harvard.edu/abs/2021RNAAS...5..194T/abstract), and [Tuchow and Wright (2023)](https://ui.adsabs.harvard.edu/abs/2023ApJ...944...71T/abstract).
 
-If you find this package useful please cite __________
+If you find this package useful please cite:
 
-Authors: Noah Tuchow and Jason Wright
+Tuchow, N. W. and Wright, J. T. (2024). HZ_evolution: A Package to Calculate Habitable Histories. In prep.
 
 ## Installation
 
