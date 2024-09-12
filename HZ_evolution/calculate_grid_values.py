@@ -11,7 +11,7 @@ import pandas as pd
 import time
 
 def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2.0,max_EEP=605,
-                      min_EEP=5,fixed_feh=0.0,HZ_form="K13_optimistic",verbose=True):
+                      min_EEP=5,fixed_feh=0.0,HZ_form="K13_optimistic",verbose=True,t0=0):
     '''
     calculates habitable durations for the grid of MIST models at specified metallicity
     run this function before calling construct_interpolator_3D
@@ -36,6 +36,8 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2
         Formulation of the HZ used by the HZ_evolution object. The default is "K13_optimistic".
     verbose : bool, optional
         print progress. The default is True.
+    t0: float
+        starting time for calculation in years, ie timescale for planet formation or volatile delivery
 
     Returns
     -------
@@ -56,7 +58,7 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2
     if verbose:
         print("Beginning construction of 3D habitable duration grid. [Fe/H] fixed at %.3f" % fixed_feh)
     
-    query_str='(initial_mass<=%f) and (initial_mass>=%f) and (EEP < %d) and (EEP > %d) and (initial_feh==%f)' % (max_mass, min_mass, max_EEP, min_EEP,fixed_feh)
+    query_str='(initial_mass<=%f) and (initial_mass>=%f) and (EEP < %d) and (initial_feh==%f)' % (max_mass, min_mass, max_EEP,fixed_feh)
 
     df= df.query(query_str)
 
@@ -67,8 +69,8 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2
         return
     
     masses= df.index.get_level_values(1).drop_duplicates().values
-    eeps= df.index.get_level_values(2).drop_duplicates().values#np.array(range(6,605))
-    Seff_arr= np.linspace(0.1, 2.1,200)
+    eeps= eeps= np.array(range(min_EEP,max_EEP))#df.index.get_level_values(2).drop_duplicates().values
+    Seff_arr= np.linspace(0.1, 2.1,100)
 
     new_ind= pd.MultiIndex.from_product([masses,eeps,Seff_arr],names=('initial_mass','EEP','S_eff'))
     
@@ -83,10 +85,13 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2
             print("Mass=%.2f \n" % mass )
         track=df.xs((fixed_feh,mass),level=(0,1))
         for eep in new_ind.levels[1]:
+            if eep < min_EEP:
+                continue
             if (fixed_feh,mass,eep) not in df.index:
                 continue
+            
             try:
-                evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form)
+                evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form,t0=t0)
                 temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
                 temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='default')
                 tau_df.loc[(mass,eep),'tau']=temp_tau_arr
@@ -100,7 +105,7 @@ def calculate_grid_3D(fname="tau_df_K13_optimistic.csv" ,min_mass=0.0,max_mass=2
                 
                 
             except:
-                evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form)
+                evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form,t0=t0)
                 temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
                 temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='coarse')
                 tau_df.loc[(mass,eep),'tau']=temp_tau_arr
