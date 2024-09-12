@@ -9,7 +9,7 @@ import pandas as pd
 import time
 
 def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",min_mass=0.0,max_mass=2.0,max_EEP=605,
-                      min_EEP=5,HZ_form="K13_optimistic",verbose=True):
+                      min_EEP=5,HZ_form="K13_optimistic",verbose=True, t0= 0.0):
     '''
     calculates habitable durations for the grid of MIST models, including metallicity as a dimension
     run this function before calling construct_interpolator_4d
@@ -52,15 +52,15 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",min_mass=0.0,max_mass
     if verbose:
         print("Beginning construction of 4D habitable duration grid.")
     
-    query_str='(initial_mass<=%f) and (initial_mass>=%f) and (EEP < %d) and (EEP > %d)' % (max_mass,min_mass,max_EEP,min_EEP)
+    query_str='(initial_mass<=%f) and (initial_mass>=%f) and (EEP < %d)' % (max_mass,min_mass,max_EEP)
 
     df= df.query(query_str)
-
+    #removed eep min from query as tracks still need earlier eeps to calculate tau beyond eep min
     fehs= df.index.get_level_values(0).drop_duplicates().values#df.index.levels[0].values
     fehs= fehs[4:]
     masses= df.index.get_level_values(1).drop_duplicates().values  #df.index.levels[1].values
     #mass_arr=     #masses[:80]
-    eeps= df.index.get_level_values(2).drop_duplicates().values# np.array(range(6,605))
+    eeps= np.array(range(min_EEP,max_EEP)) #df.index.get_level_values(2).drop_duplicates().values# np.array(range(6,605))
     Seff_arr= np.linspace(0.1, 2.1,100)
 
     new_ind= pd.MultiIndex.from_product([fehs,masses,eeps,Seff_arr],names=('initial_Fe_H','initial_mass','EEP','S_eff'))
@@ -80,10 +80,13 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",min_mass=0.0,max_mass
                 print("Mass=%.2f \n" % mass )
             track=df.xs((feh,mass),level=(0,1))
             for eep in new_ind.levels[2]:
+                if eep < min_EEP:
+                    continue
                 if (feh,mass,eep) not in df.index:
                     continue
+                
                 try:
-                    evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form)
+                    evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form,t0=t0)
                     temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
                     temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='default')
                     tau_df.loc[(feh,mass,eep),'tau']=temp_tau_arr
@@ -97,7 +100,7 @@ def calculate_grid_4D(fname="tau_df_K13_optimistic_4D.csv",min_mass=0.0,max_mass
                     
                     
                 except:
-                    evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form)
+                    evol= HZ_evolution_MIST(track, eep,HZ_form=HZ_form,t0=t0)
                     temp_d_arr=np.sqrt(evol.L[-1]/Seff_arr)
                     temp_tau_arr=evol.obj_calc_tau(temp_d_arr,mode='coarse')
                     tau_df.loc[(feh,mass,eep),'tau']=temp_tau_arr
