@@ -123,9 +123,11 @@ class HZ_evolution:
     custom_outer_HZ_func: function, optional
         Custom function for outer HZ boundary, taking 
         arguments of L and Teff. Only used when HZ_form="custom"
+    t0: float
+        starting time for calculation in years, ie timescale for planet formation or volatile delivery
     """
     def __init__(self,age,L,Teff,HZ_form="K13",custom_inner_HZ_func=None,
-                 custom_outer_HZ_func=None):
+                 custom_outer_HZ_func=None, t0=0.0):
         #need to do something if len<=1?
         self.age=age
         self.L = L
@@ -152,6 +154,17 @@ class HZ_evolution:
         else:
             print("Invalid HZ")
             return
+        
+        if t0 >= self.age[-1]:
+            self.age = self.age - t0
+        elif t0 >0.0:
+            ind0=np.where(self.age>t0)[0][0]
+            if ind0>0:
+                self.age=self.age[(ind0-1):]
+                self.L = self.L[(ind0-1):]
+                self.Teff = self.Teff[(ind0-1):]
+                self.age = self.age - t0
+            
         
         if not custom_HZ:
             self.r_inner= hz_boundary(self.L,self.Teff, c_inner)
@@ -600,7 +613,7 @@ class HZ_evolution:
         hz_ax.plot(self.age,self.r_inner,ls='-',color='black')
         hz_ax.plot(self.age,self.r_outer,ls='-',color='black')
         hz_ax.set_xscale("log")
-        hz_ax.set_xlabel("age (yr)")
+        hz_ax.set_xlabel("time (yr)")
         hz_ax.set_ylabel("distance (AU)")
         #hz_ax.set_xlim([0.95*CHZ_start_age,self.age[-1]])
         if include_start_age:
@@ -648,10 +661,11 @@ class HZ_planet(HZ_evolution):
     def __init__(self, age,L,Teff,Dist=None, Period=None,Mstar=None,
                  HZ_form="K13",
                  custom_inner_HZ_func=None,
-                 custom_outer_HZ_func=None):
+                 custom_outer_HZ_func=None, t0 = 0.0):
         super().__init__(age, L, Teff, HZ_form=HZ_form,
                          custom_inner_HZ_func=custom_inner_HZ_func,
-                         custom_outer_HZ_func=custom_outer_HZ_func)
+                         custom_outer_HZ_func=custom_outer_HZ_func,
+                         t0= t0)
         
         if Dist==None:
             if Period==None or Mstar==None:
@@ -664,7 +678,8 @@ class HZ_planet(HZ_evolution):
             
         self.Seff= self.L/pow(self.Dist,2)
         self.current_age= self.age[-1]
-    
+        self.t0=t0
+        
     def get_tau(self, **kwargs):
         '''
         Calculate the duration the planet spends in the habitable zone.
@@ -688,6 +703,31 @@ class HZ_planet(HZ_evolution):
         '''
         self.t_ext=self.obj_calc_t_exterior(self.Dist,**kwargs)[0]
         return self.t_ext
+    
+    # def classify_planet(self, CHZ_start_age=None):
+    #     if (hasattr(self,'sCHZ_i') and hasattr(self,'sCHZ_o')):
+    #         pass
+    #     elif CHZ_start_age==None:
+    #         if self.t0>0 :
+    #             self.get_sustained_CHZ(CHZ_start_age=self.t0)
+    #         else:
+    #             self.get_sustained_CHZ() #use default start time
+    #     else:
+    #         self.get_sustained_CHZ(CHZ_start_age=CHZ_start_age)
+        
+        
+    #     c_str=''
+    #     if (self.Dist >= self.sCHZ_i) and (self.Dist<= self.sCHZ_o):
+    #         c_str="Continuously Habitable Zone"
+    #     elif (self.Dist < self.sCHZ_i) and (self.Dist >= self.current_i):
+    #         c_str="Inner Belatedly Habitable Zone"
+    #     elif (self.Dist > self.sCHZ_o) and (self.Dist <= self.current_o):
+    #         c_str= "Outer Belatedly Habitable Zone"
+    #     else:
+    #         c_str="Outside of HZ"
+        
+    #     print(c_str)
+    #     return c_str
 
 
 def HZ_evolution_MIST(track,eep,**kwargs):
@@ -710,7 +750,7 @@ def HZ_evolution_MIST(track,eep,**kwargs):
         HZ_evolution object for specified track
 
     '''
-    if eep==0:
+    if eep==0 :
         L=[np.nan]
         Teff=[np.nan]
         age=[0]
@@ -771,6 +811,13 @@ def calc_tau(d, age, r_inner,r_outer, only_CHZ=False):
     It is recommended to use the obj_calc_tau function in the HZ_evolution object
         rather than calling this function by itself
     '''
+    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
+        d= np.array([d])
+    
+    nd=len(d)
+    
+    if age[-1] <0:
+        return np.zeros(nd)
     
     if only_CHZ==False:
         ri_func=interpolate.interp1d(age,r_inner)
@@ -781,10 +828,6 @@ def calc_tau(d, age, r_inner,r_outer, only_CHZ=False):
     ri_max= max(r_inner) #CHZ inner for t1=0
     ro_min= min(r_outer) #CHZ outer for t1=0
     
-    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
-        d= np.array([d])
-    
-    nd=len(d)
     t_life=np.zeros(nd)
     
     for k in range(nd):
@@ -827,15 +870,20 @@ def calc_tau_coarse(d, age, r_inner,r_outer,only_CHZ=False):
     #faster and more flexible version of calc_tau
     #currently more coarse than calc_tau, doesn't use interpolation, or optimization to save computation time
     '''
-    ri_min=min(r_inner)
-    ro_max=max(r_outer)
-    ri_max= max(r_inner) #CHZ inner for t1=0
-    ro_min= min(r_outer) #CHZ outer for t1=0
     
     if not (isinstance(d,np.ndarray) or isinstance(d,list)):
         d= np.array([d])
     
     nd=len(d)
+    
+    if age[-1] <0:
+        return np.zeros(nd)
+    
+    ri_min=min(r_inner)
+    ro_max=max(r_outer)
+    ri_max= max(r_inner) #CHZ inner for t1=0
+    ro_min= min(r_outer) #CHZ outer for t1=0
+    
     t_life=np.zeros(nd)
     
     for k in range(nd):
@@ -871,16 +919,19 @@ def calc_t_interior(d, age, r_inner,r_outer):
     use obj_calc_t_interior in HZ_evolution class instead of calling this function by itself
 
     '''
+    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
+        d= np.array([d])
+    
+    nd=len(d)
+    
+    if age[-1] <0:
+        return np.zeros(nd)
     
     ri_min=min(r_inner)
     ri_max= max(r_inner) 
     
     ri_func= interpolate.interp1d(age,r_inner)
     
-    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
-        d= np.array([d])
-        
-    nd=len(d)
     t_interior=np.zeros_like(d)
     
     for q in range(nd):
@@ -898,21 +949,26 @@ def calc_t_interior(d, age, r_inner,r_outer):
         elif d[q]<=ri_min:
             t_interior[q]=0
     
+    t_interior[t_interior<0.0]=0.0
+    
     return t_interior
 
 
 def calc_t_interior_coarse(d, age, r_inner,r_outer):
     '''faster but less precise version of calc_t_interior'''
+    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
+        d= np.array([d])
+    
+    nd=len(d)
+    
+    if age[-1] <0:
+        return np.zeros(nd)
+    
     
     ri_min=min(r_inner)
     ri_max= max(r_inner) 
     
-    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
-        d= np.array([d])
-        
-    nd=len(d)
     t_interior=np.zeros_like(d)
-    
     
     for q in range(nd):
         if d[q] < r_inner[-1] or d[q] > r_outer[-1]: # set to zero outside HZ
@@ -926,20 +982,27 @@ def calc_t_interior_coarse(d, age, r_inner,r_outer):
         elif d[q]<=ri_min:
             t_interior[q]=0
     
+    t_interior[t_interior<0.0]=0.0
+    
     return t_interior
 
 def calc_t_exterior(d, age, r_inner,r_outer):
     '''function to calculate time spent exterior to the HZ
     use obj_calc_t_exterior in the HZ_evolution object instead of calling this function directly'''    
+    
+    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
+        d= np.array([d])
+    
+    nd=len(d)
+    
+    if age[-1] <0:
+        return np.zeros(nd)
+    
     ro_max=max(r_outer) 
     ro_min= min(r_outer)
     
     ro_func= interpolate.interp1d(age,r_outer)
     
-    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
-        d= np.array([d])
-        
-    nd=len(d)
     t_ext=np.zeros_like(d)
     
     for q in range(nd):
@@ -957,17 +1020,23 @@ def calc_t_exterior(d, age, r_inner,r_outer):
         elif d[q]<=ro_min:
             t_ext[q]=0
     
+    t_ext[t_ext<0.0]=0.0
+    
     return t_ext
 
 def calc_t_exterior_coarse(d, age, r_inner,r_outer):
     '''faster but less precision version of calc_t_exterior'''
+    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
+        d= np.array([d])
+    
+    nd=len(d)
+    
+    if age[-1] <0:
+        return np.zeros(nd)
+    
     ro_max=max(r_outer)
     ro_min= min(r_outer)
     
-    if not (isinstance(d,np.ndarray) or isinstance(d,list)):
-        d= np.array([d])
-        
-    nd=len(d)
     t_ext=np.zeros_like(d)
     
     
@@ -982,6 +1051,8 @@ def calc_t_exterior_coarse(d, age, r_inner,r_outer):
             t_ext[q]= outer_age
         elif d[q]<=ro_min:
             t_ext[q]=0
+    
+    t_ext[t_ext<0.0]=0.0
     
     return t_ext    
 
