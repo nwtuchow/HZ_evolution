@@ -10,7 +10,7 @@ This package builds upon the previous work of [Tuchow and Wright (2020)](https:/
 
 If you find this package useful please cite:
 
-Tuchow, N. W. and Wright, J. T. (2024). HZ_evolution: A Package to Calculate Habitable Histories. In prep.
+Tuchow, N. W. and Wright, J. T. (2024). HZ_evolution: A Package to Calculate Habitable Histories. Research Notes of the AAS, 8(10), 248. ([Link](https://iopscience.iop.org/article/10.3847/2515-5172/ad8129/meta))
 
 ## Installation
 
